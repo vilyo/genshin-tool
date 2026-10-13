@@ -1,0 +1,30 @@
+[package]
+name = "genshintool"
+version = "0.1.0"
+description = "原神工具箱 —— 祈愿记录本地统计助手"
+edition = "2021"
+
+[lib]
+name = "genshintool_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[[bin]]
+name = "genshintool"
+path = "src/main.rs"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tauri = { version = "2", features = [] }
+# rustls-tls:避免 OpenSSL 依赖(沿用鸣潮项目 ADR,Rust 面最小化、跨平台构建友好)
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
+rusqlite = { version = "0.32", features = ["bundled"] }
+# 手动指定游戏目录的系统文件夹选择器(沿用鸣潮项目 #04 方案)
+tauri-plugin-dialog = "2"
+
+[target.'cfg(windows)'.dependencies]
+# Windows 专属探测源:注册表 Uninstall / MuiCache / 防火墙规则(客户端定位,winprobe.rs)
+winreg = "0.55"

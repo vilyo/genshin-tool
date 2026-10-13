@@ -1,0 +1,12 @@
+/* 设计 tokens 占位:仅保证骨架可用,正式设计系统待原型定稿后落地(参考鸣潮项目 docs/design/DESIGN-SYSTEM.md 流程) */
+:root {
+  --t-bg: #0d0e17;
+  --t-fg: #ece5d3;
+  --t-gold: #d3bc8e;
+  --t-gold-bright: #efe0b0;
+}
+
+html[data-theme='light'] {
+  --t-bg: #f7f4ec;
+  --t-fg: #2b2618;
+}
