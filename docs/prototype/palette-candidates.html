@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>配色候选对比 · 祈愿记录</title>
+<style>
+/* 配色候选对比页:同一块主画面简略图 × 7 组候选令牌(均取自 ui-ux-pro-max 配色库) */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #0B0A18; color: #C9D2E3; font: 14px/1.6 "PingFang SC", "Microsoft YaHei", sans-serif; padding: 36px 28px 60px; -webkit-font-smoothing: antialiased; }
+.wrap { max-width: 1480px; margin: 0 auto; }
+h1 { font: 700 22px/1.4 inherit; color: #EDEFF7; }
+.sub { color: #8E96AD; font-size: 13px; margin: 8px 0 26px; max-width: 960px; }
+.sub b { color: #C9D2E3; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); gap: 22px; }
+.cand { background: #16142B; border: 1px solid #2E2B4E; border-radius: 12px; padding: 16px 16px 14px; }
+.cand--current { border-color: #7C3AED; box-shadow: 0 0 0 1px #7C3AED, 0 14px 40px -18px rgba(124, 58, 237, .45); }
+.cand-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 4px; }
+.cand-no { font: 700 12px "Chakra Petch", monospace; color: #8E96AD; border: 1px solid #2E2B4E; border-radius: 5px; padding: 1px 7px; }
+.cand-name { font: 700 16px inherit; color: #EDEFF7; }
+.cand-cur { font: 600 11px inherit; color: #C4B5FD; border: 1px solid #7C3AED; border-radius: 999px; padding: 1px 9px; }
+.cand-lean { font: 600 11px inherit; color: #FDE68A; border: 1px solid #F59E0B; border-radius: 999px; padding: 1px 9px; }
+.cand-mode { font: 500 11px inherit; color: #8E96AD; border: 1px solid #2E2B4E; border-radius: 999px; padding: 1px 9px; }
+.cand-src { font: 11.5px inherit; color: #8E96AD; margin: 2px 0 10px; }
+.cand-src code { color: #A78BFA; font-family: "Chakra Petch", monospace; font-size: 11px; }
+.swatches { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+.sw { flex: 1; min-width: 44px; }
+.sw i { display: block; height: 22px; border-radius: 4px; border: 1px solid rgba(255,255,255,.14); }
+.sw span { display: block; font: 10px "Chakra Petch", monospace; color: #8E96AD; margin-top: 3px; text-align: center; }
+.cand-note { font: 12px/1.7 inherit; color: #A9B1C6; margin-top: 12px; }
+.cand-note b { color: #EDEFF7; }
+.cand-note .con { color: #FCA5A5; }
+
+/* ---- 简略图:同一结构,随令牌换肤 ---- */
+.mk {
+  --soft: rgba(240,185,82,.30); --ember: #F0B952;
+  background: var(--bg); color: var(--fg);
+  border: 1px solid var(--border); border-radius: 9px; overflow: hidden;
+  font-variant-numeric: tabular-nums;
+}
+.mk-tb { display: flex; align-items: center; gap: 8px; padding: 7px 10px; background: color-mix(in srgb, var(--muted) 55%, var(--bg)); border-bottom: 1px solid var(--border); }
+.mk-dot { width: 10px; height: 10px; border-radius: 3px; background: var(--cta); }
+.mk-name { font: 600 11.5px "PingFang SC", sans-serif; }
+.mk-cta { margin-left: auto; font: 600 10.5px "PingFang SC", sans-serif; color: var(--onCta); background: var(--cta); border-radius: 5px; padding: 2.5px 9px; }
+.mk-band { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px 0; }
+.mk-lb { font: 500 10px "PingFang SC", sans-serif; color: var(--fg2); display: block; }
+.mk-num { font: 700 20px/1 "Chakra Petch", monospace; color: var(--r5); }
+.mk-num i { font: 500 10px "PingFang SC", sans-serif; color: var(--fg2); margin-left: 3px; font-style: normal; }
+.mk-chip { font: 600 10px "PingFang SC", sans-serif; color: var(--ember); background: color-mix(in srgb, var(--ember) 16%, transparent); border-radius: 4px; padding: 2px 8px; }
+.mk-bar { position: relative; height: 10px; margin: 7px 10px 3px; background: var(--muted); border-radius: 3px; overflow: hidden; }
+.mk-fill { position: absolute; inset: 0 auto 0 0; width: 82%; background: var(--cta); opacity: .9; }
+.mk-soft { position: absolute; top: 0; bottom: 0; left: 82%; right: 0; background: repeating-linear-gradient(135deg, var(--soft) 0 4px, transparent 4px 8px); }
+.mk-ember { position: absolute; left: 82%; top: 50%; width: 9px; height: 9px; background: var(--ember); transform: translate(-50%, -50%) rotate(45deg); border-radius: 2px; box-shadow: 0 0 0 2px var(--bg), 0 0 8px var(--ember); }
+.mk-rows { padding: 2px 6px 0; }
+.mk-row { display: flex; align-items: center; gap: 8px; padding: 5px 4px; border-bottom: 1px dashed color-mix(in srgb, var(--border) 60%, transparent); }
+.mk-row:last-child { border-bottom: 0; }
+.mk-av { flex: none; width: 18px; height: 18px; display: grid; place-items: center; font: 600 9.5px "PingFang SC", sans-serif; color: var(--r5); background: var(--muted); border: 1px solid color-mix(in srgb, var(--r5) 55%, transparent); border-radius: 4px; transform: rotate(45deg); }
+.mk-av i { transform: rotate(-45deg); font-style: normal; }
+.mk-nm { font: 600 11.5px "PingFang SC", sans-serif; }
+.mk-nm em { font: 600 9px "PingFang SC", sans-serif; font-style: normal; color: var(--fg2); border: 1px solid color-mix(in srgb, var(--fg2) 45%, transparent); border-radius: 3px; padding: 0 4px; margin-left: 4px; }
+.mk-pity { margin-left: auto; font: 700 12px "Chakra Petch", monospace; }
+.mk-pity i { font: 400 9.5px "PingFang SC", sans-serif; color: var(--fg2); margin-left: 2px; font-style: normal; }
+.mk-mark { flex: none; width: 40px; text-align: center; font: 600 10px "PingFang SC", sans-serif; border-radius: 4px; padding: 1.5px 0; }
+.mk-up { color: var(--r5); background: color-mix(in srgb, var(--r5) 15%, transparent); }
+.mk-wai { color: var(--wai); background: color-mix(in srgb, var(--wai) 16%, transparent); }
+.mk-must { color: var(--mustTxt); background: var(--must); }
+.mk-foot { display: flex; align-items: center; justify-content: space-between; padding: 7px 10px; border-top: 1px solid var(--border); background: color-mix(in srgb, var(--muted) 40%, var(--bg)); }
+.mk-stat { font: 500 10.5px "PingFang SC", sans-serif; color: var(--fg2); }
+.mk-stat b { font: 700 14px "Chakra Petch", monospace; color: var(--fg); margin: 0 2px; }
+.mk-seal { width: 26px; height: 26px; display: grid; place-items: center; font: 13px "Russo One", "Chakra Petch", monospace; color: var(--onCta); background: var(--cta); border-radius: 6px; }
+.foot { margin-top: 30px; padding-top: 14px; border-top: 1px solid #2E2B4E; color: #8E96AD; font-size: 12.5px; max-width: 960px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>配色候选对比</h1>
+  <p class="sub">共 10 组候选,同一块主画面简略图直接换肤对比——每组含:标题栏 / 保底状态带 / 三行祈愿记录 / 指标与评级章。<b>领域语义色</b>(五星金、歪=警示红、必中)按各自底色做了对比度适配;选中后我会把该方案回填主原型(深色候选会衍生同族浅色主题,浅色候选反之),并重新校准全部语义色。1–7 取自 ui-ux-pro-max 配色库产品档;<b>8–9 为 Catppuccin 官方色板</b>(Mocha / Latte 两端);<b>10 为 Claude 界面风格的近似还原</b>(品牌公开锚点色)。</p>
+  <div class="grid" id="grid"></div>
+  <p class="foot">
+    回复编号(1–10)即可定稿。8/9 为 Catppuccin 官方四味(Mocha / Frappé / Macchiato / Latte)中的两端,想要中间两味可以再补;10 号为 Claude 界面风格的近似还原,以品牌公开锚点色为准。
+    注意:2、6、9、10 号为浅色主题——选中它们则 PRD F5「默认明」直接成立;选中深色主题则仍保留双主题,默认值待定(见 DESIGN.md §8)。
+    另注:3/4/5/7 号的强调色同为绿色系但底色气质不同(极夜蓝黑 / 靛蓝 / 石板灰 / 纯黑);7 号的 #00FF41 需降饱和回调才可作正文级用色。
+  </p>
+</div>
+
+<script>
+const PALETTES = [
+  {
+    no: 1, name: '电竞紫玫(现行)', cur: true, mode: '深', src: 'Gaming',
+    bg: '#0F0F23', card: '#1E1C35', muted: '#27273B', border: '#4C1D95', fg: '#E2E8F0', fg2: '#94A3B8',
+    cta: '#F43F5E', onCta: '#0F0F23', r5: '#F0B952', wai: '#F43F5E', must: '#7C3AED', mustTxt: '#FFFFFF',
+    accent: '#F43F5E',
+    traits: '<b>锐利、竞技感</b>。玫红 CTA 与紫底对比强,歪/必中一冷一热一眼可分;与原神官方金形成反差而非复刻。',
+  },
+  {
+    no: 2, name: '蓝数据 · 琥珀', userLean: true, mode: '浅', src: 'Analytics Dashboard',
+    bg: '#F8FAFC', card: '#FFFFFF', muted: '#E9EEF6', border: '#DBEAFE', fg: '#1E3A8A', fg2: '#475569',
+    cta: '#1E40AF', onCta: '#FFFFFF', r5: '#B45309', wai: '#DC2626', must: '#1E40AF', mustTxt: '#FFFFFF',
+    accent: '#D97706',
+    traits: '<b>最稳重的工具脸</b>。藏青数据 + 琥珀高亮,长时间看流水不累;气质偏「效率软件」,游戏感最弱。',
+  },
+  {
+    no: 3, name: '极夜涨绿', mode: '深', src: 'Financial Dashboard',
+    bg: '#020617', card: '#0E1223', muted: '#1A1E2F', border: '#334155', fg: '#F8FAFC', fg2: '#94A3B8',
+    cta: '#22C55E', onCta: '#0F172A', r5: '#F0B952', wai: '#EF4444', must: '#22C55E', mustTxt: '#0F172A',
+    accent: '#22C55E',
+    traits: '<b>最深的底,近乎纯夜</b>。绿色「出金/上涨」暗示贴合出货语境;注意绿色同时承担 CTA 与必中,需靠形态区分。',
+  },
+  {
+    no: 4, name: '靛蓝播放', mode: '深', src: 'Music Streaming',
+    bg: '#0F0F23', card: '#1B1B30', muted: '#27273B', border: '#312E81', fg: '#F8FAFC', fg2: '#94A3B8',
+    cta: '#4338CA', onCta: '#FFFFFF', r5: '#F0B952', wai: '#EF4444', must: '#22C55E', mustTxt: '#0F172A',
+    accent: '#22C55E',
+    traits: '<b>现行方案的近亲</b>:同底色,玫红换成靛蓝+播放绿,攻击性降低、更中性;想要「紫系但没这么冲」选它。',
+  },
+  {
+    no: 5, name: '石板工作台', mode: '深', src: 'Developer Tool / IDE',
+    bg: '#0F172A', card: '#1B2336', muted: '#272F42', border: '#475569', fg: '#F8FAFC', fg2: '#94A3B8',
+    cta: '#22C55E', onCta: '#0F172A', r5: '#F0B952', wai: '#EF4444', must: '#22C55E', mustTxt: '#0F172A',
+    accent: '#22C55E',
+    traits: '<b>无彩色底 + 运行绿</b>。石板灰蓝最中性,像顺手的开发工具;描边最弱,层级更靠留白,信息密度可以更高。',
+  },
+  {
+    no: 6, name: '战队红金', mode: '浅', src: 'Sports Team/Club',
+    bg: '#FEF2F2', card: '#FFFFFF', muted: '#F0EDF1', border: '#FECACA', fg: '#7F1D1D', fg2: '#475569',
+    cta: '#DC2626', onCta: '#FFFFFF', r5: '#B45309', wai: '#B91C1C', must: '#7F1D1D', mustTxt: '#FFFFFF',
+    accent: '#FBBF24',
+    traits: '<b>喜感最贴合抽卡</b>:红=出金庆典,冠军金与五星金同域,评级章天然像勋章。<span class="con">注意:主色与「歪」同为红域,歪的标记要靠加深与位置区分。</span>',
+  },
+  {
+    no: 7, name: '终端矩阵', mode: '深', src: 'Cybersecurity Platform',
+    bg: '#000000', card: '#0C130E', muted: '#181818', border: '#1F1F1F', fg: '#E0E0E0', fg2: '#94A3B8',
+    cta: '#00FF41', onCta: '#0F172A', r5: '#F0B952', wai: '#FF3333', must: '#00FF41', mustTxt: '#0F172A',
+    accent: '#FF3333',
+    traits: '<b>最硬核,极客味拉满</b>。纯黑+矩阵绿;对比过于极端,<span class="con">采用时绿需降饱和(如 #4ADE80)并把底色提到 #050805 级,否则大面积刺眼。</span>',
+  },
+  {
+    no: 8, name: 'Catppuccin Mocha', mode: '深', src: 'Catppuccin(官方 Mocha)', srcPrefix: '开源色板',
+    bg: '#1E1E2E', card: '#313244', muted: '#45475A', border: '#585B70', fg: '#CDD6F4', fg2: '#A6ADC8',
+    cta: '#CBA6F7', onCta: '#11111B', r5: '#F9E2AF', wai: '#F38BA8', must: '#89B4FA', mustTxt: '#11111B',
+    accent: '#FAB387',
+    traits: '<b>社区最流行的柔和暗色系</b>。薰衣草紫 CTA + 低饱和粉彩,护眼、气质温和;五星金用系列 yellow,歪为系列红粉。与 1 号同为紫域,但更柔、更像「社区主题」而非电竞。',
+  },
+  {
+    no: 9, name: 'Catppuccin Latte', mode: '浅', src: 'Catppuccin(官方 Latte)', srcPrefix: '开源色板',
+    bg: '#EFF1F5', card: '#FFFFFF', muted: '#E6E9EF', border: '#CCD0DA', fg: '#4C4F69', fg2: '#6C6F85',
+    cta: '#8839EF', onCta: '#FFFFFF', r5: '#DF8E1D', wai: '#D20F39', must: '#1E66F5', mustTxt: '#FFFFFF',
+    accent: '#FE640B',
+    traits: '<b>同系列的浅色端</b>,奶白纸感;与 2 号同属「稳重浅色」,但色相更暖、亲和力更强。五星金用系列 yellow(#DF8E1D),浅底上恰好是文字级金色。',
+  },
+  {
+    no: 10, name: 'Claude 暖米陶土', mode: '浅', src: 'Anthropic 界面风(近似还原)', srcPrefix: '品牌锚点',
+    bg: '#F0EEE6', card: '#FAF9F5', muted: '#E9E6DC', border: '#DDD9CC', fg: '#1F1E1D', fg2: '#6E6B64',
+    cta: '#D97757', onCta: '#FFFFFF', r5: '#B45309', wai: '#B91C1C', must: '#198F90', mustTxt: '#FFFFFF',
+    accent: '#CC785C',
+    traits: '<b>暖米象牙 + 陶土橙</b>,人文纸感、安静克制,与 1 号电竞感是两个极端。品牌锚点:陶土 #D97757 / 书布 #CC785C / 牛皮纸 #D4A27F / 青绿 #198F90(必中用青绿)。注意:陶土橙上白字对比 ~3.2:1,小字按钮文案需用加深档 #C15F3C。',
+  },
+];
+
+function mock(p) {
+  return `
+  <div class="mk" style="--bg:${p.bg};--card:${p.card};--muted:${p.muted};--border:${p.border};--fg:${p.fg};--fg2:${p.fg2};--cta:${p.cta};--onCta:${p.onCta};--r5:${p.r5};--wai:${p.wai};--must:${p.must};--mustTxt:${p.mustTxt};--ember:${p.r5 === '#B45309' ? '#D97706' : '#F0B952'}">
+    <div class="mk-tb"><span class="mk-dot"></span><span class="mk-name">祈愿记录</span><span class="mk-cta">一键获取</span></div>
+    <div class="mk-band">
+      <div><span class="mk-lb">五星保底 · 角色活动祈愿</span><span class="mk-num">74<i>/ 90 抽</i></span></div>
+      <span class="mk-chip">大保底就绪</span>
+    </div>
+    <div class="mk-bar"><span class="mk-fill"></span><span class="mk-soft"></span><span class="mk-ember"></span></div>
+    <div class="mk-rows">
+      <div class="mk-row"><span class="mk-av"><i>玛</i></span><span class="mk-nm">玛薇卡</span><span class="mk-pity">8<i>抽出金</i></span><span class="mk-mark mk-up">不歪</span></div>
+      <div class="mk-row"><span class="mk-av"><i>迪</i></span><span class="mk-nm">迪卢克<em>二命</em></span><span class="mk-pity">79<i>抽出金</i></span><span class="mk-mark mk-wai">歪</span></div>
+      <div class="mk-row"><span class="mk-av"><i>克</i></span><span class="mk-nm">克洛琳德</span><span class="mk-pity">22<i>抽出金</i></span><span class="mk-mark mk-must">必中</span></div>
+    </div>
+    <div class="mk-foot"><span class="mk-stat">平均出货<b>46.7</b>抽 · 期望 62.5</span><span class="mk-seal">A</span></div>
+  </div>`;
+}
+
+function swatch(p) {
+  const items = [
+    ['背景', p.bg], ['卡片', p.card], ['CTA', p.cta], ['强调', p.accent], ['文字', p.fg], ['描边', p.border],
+  ];
+  return `<div class="swatches">${items.map(([n, c]) => `<span class="sw"><i style="background:${c}" title="${c}"></i><span>${c}</span></span>`).join('')}</div>`;
+}
+
+document.getElementById('grid').innerHTML = PALETTES.map((p) => `
+  <div class="cand${p.cur ? ' cand--current' : ''}">
+    <div class="cand-head">
+      <span class="cand-no">${p.no}</span>
+      <span class="cand-name">${p.name}</span>
+      ${p.cur ? '<span class="cand-cur">现行</span>' : ''}${p.userLean ? '<span class="cand-lean">你倾向</span>' : ''}
+      <span class="cand-mode">${p.mode}色</span>
+    </div>
+    <p class="cand-src">来源:${p.srcPrefix || 'ui-ux-pro-max'} · <code>${p.src}</code></p>
+    ${swatch(p)}
+    ${mock(p)}
+    <p class="cand-note">${p.traits}</p>
+  </div>`).join('');
+</script>
+</body>
+</html>
