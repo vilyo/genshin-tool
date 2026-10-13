@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "主窗口默认能力:骨架阶段保留原生标题栏,仅含手动指定游戏目录所需的文件夹选择器;自定义标题栏窗口控制待设计定稿后按鸣潮项目方案补充",
+  "description": "主窗口默认能力:骨架阶段保留原生标题栏,仅含手动指定游戏目录所需的文件夹选择器;自定义标题栏窗口控制待设计定稿后补充",
   "windows": ["main"],
   "permissions": ["core:default", "dialog:default"]
 }

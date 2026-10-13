@@ -19,7 +19,7 @@ export default defineConfig({
     __APP_VERSION__: JSON.stringify(pkg.version),
   },
   server: {
-    // 与鸣潮项目(1420)错开,允许两个应用同时开发
+    // 与 Tauri 默认端口 1420 错开,避免与本机其他 Tauri 应用同时开发时冲突
     port: 1421,
     strictPort: true,
   },

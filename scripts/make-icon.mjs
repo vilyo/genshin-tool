@@ -1,6 +1,6 @@
 // 生成品牌图标「祈愿之星」(1024×1024 PNG)
 // 语义: 深蓝夜空底 = 祈愿界面, 金色外环 + 刻度 = 保底进度盘(金弧 = 已垫 60/90), 中央四芒星 = 五星出货
-// 视觉: 原神祈愿界面蓝黑 + 金 (#D3BC8E 家族), 与鸣潮项目黑金罗盘区分
+// 视觉: 原神祈愿界面蓝黑 + 金 (#D3BC8E 家族)
 // 用法: node scripts/make-icon.mjs && npm run tauri icon -- scripts/app-icon.png -o src-tauri/icons
 // (渲染用 macOS 自带 qlmanage 将 SVG 转位图, 开发环境为 macOS)
 import { writeFileSync, rmSync } from 'node:fs'
