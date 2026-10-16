@@ -1,8 +1,22 @@
-// 项目骨架阶段尚无自定义命令;gacha(祈愿 API)/db(档案存储)/probe(日志探测)模块待对应票务落地
+mod db;
+// gacha(祈愿 API)/probe(日志探测)模块待对应票务落地
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        .invoke_handler(tauri::generate_handler![
+            db::db_insert_records,
+            db::db_update_identity,
+            db::db_set_watermark,
+            db::db_get_watermark,
+            db::db_set_last_synced,
+            db::db_clear_archive,
+            db::db_load_records,
+            db::db_migrate_archive,
+            db::db_list_archives,
+            db::db_ensure_archive,
+        ])
         .build(tauri::generate_context!())
         .expect("Tauri 应用初始化失败")
         .run(|app, event| {
