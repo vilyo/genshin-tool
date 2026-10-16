@@ -1,12 +1,75 @@
-/* 设计 tokens 占位:仅保证骨架可用,正式设计系统待原型定稿后落地 */
+/*
+ * V5.2「璇玑 Armillary」设计 token(docs/prototype/v5-concept/board.html 抄录):
+ * 夜仪(曜石黑 + 群青)为默认主题(:root),昼版(铜版纸白)经 html[data-theme='light'] 覆盖;
+ * 两套均按 AA 对比校准,不是明暗反相。命名语义:accent = 群青主色文字档、
+ * accent-2 = 群青图形档、jade/spring/cinnabar = 必中/超欧/歪警示语义色。
+ * 字体文件属 T17 构建期内置,当前以系统栈回退。
+ */
 :root {
-  --t-bg: #0d0e17;
-  --t-fg: #ece5d3;
-  --t-gold: #d3bc8e;
-  --t-gold-bright: #efe0b0;
+  /* 字体(board.html --num/--tech/--mono/--cjk;暂用系统回退) */
+  --font-num: 'Italiana', 'Palatino', 'Georgia', serif;
+  --font-tech: 'Jura', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-mono: 'Geist Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --font-cjk: 'PingFang SC', 'Microsoft YaHei', 'Segoe UI', system-ui, sans-serif;
+
+  /* 夜仪 · 底与墨 */
+  --bg: #0a0e13;
+  --raise: linear-gradient(180deg, #10161e 0%, #0c1118 100%);
+  --raise-border: rgba(130, 168, 234, 0.26);
+  --line: rgba(233, 238, 244, 0.11);
+  --line-soft: rgba(233, 238, 244, 0.07);
+  --backdrop: rgba(2, 4, 8, 0.62);
+  --fg: #e9eef4;
+  --mut: #8fa0b0;
+  --dim: #5c6d7e;
+
+  /* 夜仪 · 群青与语义色 */
+  --accent: #82a8ea; /* 文字档(7.9:1) */
+  --accent-2: #5f8cd6; /* 图形档 */
+  --accent-deep: #4a6fa8;
+  --accent-wash: rgba(130, 168, 234, 0.08);
+  --seal-bg: rgba(130, 168, 234, 0.06);
+  --seal-inner: rgba(130, 168, 234, 0.3);
+  --purple: #b8a1e3;
+  --cyan: #74aecb;
+  --jade: #4fc4b0;
+  --jade-bg: rgba(79, 196, 176, 0.1);
+  --jade-bd: rgba(79, 196, 176, 0.45);
+  --spring: #8fd9a8;
+  --cinnabar: #d96f7c;
+
+  /* 主按钮:群青底 + 曜石深字 */
+  --btn: var(--accent);
+  --btn-ink: #0a0e13;
+  --danger: var(--cinnabar);
 }
 
 html[data-theme='light'] {
-  --t-bg: #f7f4ec;
-  --t-fg: #2b2618;
+  /* 昼版 · 纸白底与墨字 */
+  --bg: #f5f2ea;
+  --raise: linear-gradient(180deg, #ffffff 0%, #fbf9f3 100%);
+  --raise-border: rgba(46, 80, 156, 0.35);
+  --line: rgba(58, 54, 46, 0.16);
+  --line-soft: rgba(58, 54, 46, 0.09);
+  --backdrop: rgba(60, 70, 95, 0.38);
+  --fg: #3a362e;
+  --mut: #6e6759;
+  --dim: #8e8672;
+
+  --accent: #2e509c; /* 文字档(6.8:1) */
+  --accent-2: #3e63b8; /* 图形档(5.1:1) */
+  --accent-deep: #23407f;
+  --accent-wash: rgba(46, 80, 156, 0.07);
+  --seal-bg: rgba(46, 80, 156, 0.06);
+  --seal-inner: rgba(46, 80, 156, 0.32);
+  --purple: #6b4fa8;
+  --cyan: #2f7a93;
+  --jade: #177068;
+  --jade-bg: rgba(23, 112, 104, 0.09);
+  --jade-bd: rgba(23, 112, 104, 0.45);
+  --spring: #2f8f63;
+  --cinnabar: #be4e60;
+
+  --btn: var(--accent);
+  --btn-ink: #fff9f7;
 }

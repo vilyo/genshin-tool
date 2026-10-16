@@ -6,7 +6,226 @@
 
 body {
   margin: 0;
-  font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
-  background: var(--t-bg);
+  font-family: var(--font-cjk);
+  background: var(--bg);
+  color: var(--fg);
   -webkit-font-smoothing: antialiased;
+}
+
+/* —— 通用控件(V5 对话框/工具行共用:圆角、描边、群青主色)—— */
+
+button {
+  font-family: inherit;
+}
+
+.btn {
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--mut);
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  padding: 7px 18px;
+  cursor: pointer;
+  transition:
+    color 0.15s,
+    border-color 0.15s,
+    background 0.15s,
+    filter 0.15s;
+}
+
+.btn:hover:not(:disabled) {
+  color: var(--fg);
+  border-color: var(--accent-2);
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.btn.accent {
+  border: none;
+  background: var(--btn);
+  color: var(--btn-ink);
+}
+
+.btn.accent:hover:not(:disabled) {
+  color: var(--btn-ink);
+  border-color: transparent;
+  filter: brightness(1.07);
+}
+
+/* —— 对话框通用底 —— */
+
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  background: var(--backdrop);
+}
+
+.dialog {
+  width: 520px;
+  max-width: calc(100vw - 48px);
+  max-height: calc(100vh - 64px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px 22px;
+  border-radius: 14px;
+  background: var(--raise);
+  border: 1px solid var(--raise-border);
+  color: var(--fg);
+  box-shadow: 0 40px 90px -40px rgba(0, 0, 0, 0.7);
+}
+
+.dialog-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--fg);
+}
+
+.dialog-hint {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.8;
+  color: var(--mut);
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* —— 弹窗内行式选择(游戏目录 / UID 候选)—— */
+
+.pick-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pick-row {
+  width: 100%;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--seal-bg);
+  color: var(--fg);
+  font-size: 13px;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.pick-row:hover {
+  border-color: var(--accent-2);
+}
+
+.pick-row .row-name {
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.pick-row .row-meta {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--dim);
+}
+
+/* —— 弹窗状态文字 —— */
+
+.stage-line {
+  margin: 0;
+  font-size: 13px;
+  color: var(--mut);
+  letter-spacing: 0.05em;
+}
+
+.error-text {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.8;
+  color: var(--cinnabar);
+}
+
+/* D14 保留提示:中断前已拉取的页已落库(错误弹窗的次级行) */
+.retain-note {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--jade);
+}
+
+.done-line {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.8;
+  color: var(--fg);
+}
+
+/* —— 表单控件 —— */
+
+.dialog-input {
+  width: 100%;
+  resize: vertical;
+  border-radius: 9px;
+  border: 1px solid var(--line);
+  background: var(--seal-bg);
+  color: var(--fg);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.7;
+  padding: 10px 12px;
+}
+
+.dialog-input:focus {
+  outline: none;
+  border-color: var(--accent-2);
+}
+
+/* —— 校验报告折叠(details/summary)—— */
+
+.issue-group {
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 6px 12px;
+}
+
+.issue-group > summary {
+  cursor: pointer;
+  font-size: 12.5px;
+  color: var(--mut);
+  letter-spacing: 0.04em;
+}
+
+.issue-group > summary:hover {
+  color: var(--fg);
+}
+
+.issue-group.is-error > summary {
+  color: var(--cinnabar);
+}
+
+.issue-group ul {
+  margin: 8px 0 4px;
+  padding-left: 18px;
+  font-size: 12px;
+  line-height: 1.9;
+  color: var(--mut);
 }
