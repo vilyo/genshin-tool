@@ -1,5 +1,6 @@
 mod db;
-// gacha(祈愿 API)/probe(日志探测)模块待对应票务落地
+mod gacha;
+mod probe;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -16,6 +17,11 @@ pub fn run() {
             db::db_migrate_archive,
             db::db_list_archives,
             db::db_ensure_archive,
+            gacha::gacha_get,
+            probe::list_game_dirs,
+            probe::webcache_candidates,
+            probe::copy_to_temp,
+            probe::read_file_bytes,
         ])
         .build(tauri::generate_context!())
         .expect("Tauri 应用初始化失败")
