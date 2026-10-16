@@ -11,7 +11,7 @@
  */
 import { CHAR_HARD_PITY, WEAPON_HARD_PITY, poolCategory, type PoolCategory } from './pools'
 import { compareRecords, type WishRecord } from './records'
-import { standardVerdict } from './standardRoster'
+import { isStandardName, standardVerdict } from './standardRoster'
 
 /** 软保底起点:角色类池 74 抽起(社区强共识,官方仅公示综合概率) */
 const CHAR_SOFT_PITY = 74
@@ -66,8 +66,13 @@ export interface PoolStats {
   fourPity: { current: number }
   /** 大小保底状态(D5):仅 eventChar;guaranteed=大保底就绪 / fiftyFifty=小保底(保守) */
   guarantee: 'guaranteed' | 'fiftyFifty' | null
-  /** 名单可能过期(ADR-0003 §4)的池级汇总:任一五星命中即 true。spec 仅条目级字段,
-   *  池级汇总便于 UI 在评价区一次性提示(任务单裁决,报告已注明) */
+  /**
+   * 名单可能过期的池级旗标(UI 消费口径,T17 返工收窄):仅当**常驻池(200)五星中
+   * 存在全名单查无的名称**时置 true——新常驻成员入池必被常驻池抽到,这是名单过期
+   * 的可判信号;限定 UP 只出现在 eventChar 池、名单查无属常态,不再触发池级旗标。
+   * 仅 eventChar 携带(歪判定与「误判为 UP」后果只在 eventChar 生效),其余作用域不置。
+   * 条目级 FiveStarPull.rosterStale 保持 ADR-0003 §4 字面语义(名单查无即置),两者不同层。
+   */
   rosterStale?: true
 }
 
@@ -124,7 +129,6 @@ export function computePoolStats(scope: PoolCategory, records: readonly WishReco
   const fives: FiveStarPull[] = []
   let sinceLastFive = 0
   let sinceLastFour = 0
-  let rosterStale = false
   for (const record of asc) {
     sinceLastFive += 1
     sinceLastFour += 1
@@ -137,13 +141,29 @@ export function computePoolStats(scope: PoolCategory, records: readonly WishReco
         // D2:作用域内首个五星恒不完整(无论它是否作用域首条)
         incomplete: fives.length === 0,
         off: verdict ? verdict.off : null,
+        // 条目级保持 ADR-0003 §4 字面语义:名单查无即置,不再向上汇入池级
         ...(verdict?.rosterStale ? { rosterStale: true as const } : {}),
       })
-      if (verdict?.rosterStale) rosterStale = true
       sinceLastFive = 0
       sinceLastFour = 0
     } else if (record.rankType === 4) {
       sinceLastFour = 0
+    }
+  }
+
+  // 池级 rosterStale(T17 返工收窄口径,见 PoolStats 注):仅 eventChar 携带,以
+  // 常驻池五星是否出现全名单查无名称为信号——对全量 records 单趟检查,命中即止。
+  let rosterStale = false
+  if (scope === 'eventChar') {
+    for (const record of records) {
+      if (
+        record.rankType === 5 &&
+        poolCategory(record.gachaType) === 'standard' &&
+        !isStandardName(record.name)
+      ) {
+        rosterStale = true
+        break
+      }
     }
   }
 

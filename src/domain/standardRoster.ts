@@ -88,6 +88,15 @@ export function isStandardAt(name: string, time: string): boolean | null {
   return false
 }
 
+/**
+ * 名称是否在常驻全名单(不判生效日期)。池级「名单可能过期」旗标的检查用
+ * (T17 返工口径):新常驻成员入池必被常驻池抽到,常驻池出现全名单查无的五星
+ * 即为名单过期的可判信号;限定 UP 不经此路径触发池级旗标。
+ */
+export function isStandardName(name: string): boolean {
+  return STANDARD_ROSTER.some((item) => item.name === name)
+}
+
 /** 歪判定结论(供统计层 FiveStarPull.off / rosterStale 消费,ADR-0003 §4) */
 export interface StandardVerdict {
   /** true=歪(命中当时生效名单) false=当期 UP null=无法判定(仅名称空串,不入歪率分母) */

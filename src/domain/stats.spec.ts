@@ -86,7 +86,7 @@ describe('H1 301/400 交错合并(DoD 用例)', () => {
     expect(stats.pity).toEqual({ current: 0, hard: 90, softFrom: 74 })
     expect(stats.fourPity).toEqual({ current: 0 }) // m15 五星把四星计数一并清零
     expect(stats.guarantee).toBe('guaranteed') // 末个五星(刻晴)歪 → 大保底就绪
-    expect(stats.rosterStale).toBeUndefined() // 名单全部可判定,无过期旗标
+    expect(stats.rosterStale).toBeUndefined() // 常驻池无名单外五星,池级旗标不置(T17 返工口径)
   })
 
   it('乱序入参结果不变(内部按比较器升序)', () => {
@@ -324,18 +324,38 @@ describe('H14 防御分支(off=null 不可达路径,空名注入钉死)', () => 
   })
 })
 
-describe('off 判定接入与 rosterStale 池级汇总', () => {
-  it('名单外非限池名 → 条目级 rosterStale 且池级汇总为 true,按 UP 计入分母', () => {
+describe('off 判定接入与 rosterStale 池级旗标(T17 返工收窄口径)', () => {
+  it('名单外限定五星:条目级 rosterStale 保持 ADR 字面,池级不再触发(回归)', () => {
     const records = [
-      rec(301, 0, '那维莱特', 5), // 非空名全名单查无 → off=false + rosterStale
+      rec(301, 0, '那维莱特', 5), // 非空名全名单查无 → 条目级 stale + off=false
       rec(301, 1, '三星武器', 3),
       rec(301, 2, '迪卢克', 5), // 名单内 → 歪,无 stale
     ]
     const stats = computePoolStats('eventChar', records)
-    expect(stats.fives[0]?.rosterStale).toBe(true)
+    expect(stats.fives[0]?.rosterStale).toBe(true) // 条目级:ADR-0003 §4 字面语义不变
     expect(stats.fives[0]?.off).toBe(false) // 宁可信 UP:仍计 UP 并入分母
     expect(stats.fives[1]?.rosterStale).toBeUndefined()
-    expect(stats.rosterStale).toBe(true) // 任一命中 → 池级旗标
+    // 限定 UP 名单查无属常态,不再触发池级旗标(返工裁定)
+    expect(stats.rosterStale).toBeUndefined()
     expect(stats.offRate).toBe(0.5)
+  })
+
+  it('常驻池出现名单外五星 → 池级 rosterStale 置 true(名单过期可判信号)', () => {
+    const records = [
+      rec(301, 0, '那维莱特', 5), // 限定 UP:不触发
+      ...fillers(301, 1, 5),
+      rec(301, 6, '提纳里', 5),
+      rec(200, 7, '虚构的新常驻角色', 5), // 新常驻成员必经常驻池:全名单查无 → 池级 true
+    ]
+    const stats = computePoolStats('eventChar', records)
+    expect(stats.rosterStale).toBe(true)
+  })
+
+  it('池级检查只查全名单、不判生效日期;旗标仅 eventChar 携带', () => {
+    // 提纳里在 2022-08(早于 3.1 入常驻)出现于常驻池属不可能历史,但全名单命中 → 不置旗标
+    expect(computePoolStats('eventChar', [rec(200, 0, '提纳里', 5)]).rosterStale).toBeUndefined()
+    // 池级旗标仅 eventChar 携带(歪判定与「误判为 UP」后果只在 eventChar 生效)
+    const standardStats = computePoolStats('standard', [rec(200, 0, '虚构的新常驻角色', 5)])
+    expect(standardStats.rosterStale).toBeUndefined()
   })
 })

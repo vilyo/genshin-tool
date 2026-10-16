@@ -3,10 +3,10 @@
  * 夜仪(曜石黑 + 群青)为默认主题(:root),昼版(铜版纸白)经 html[data-theme='light'] 覆盖;
  * 两套均按 AA 对比校准,不是明暗反相。命名语义:accent = 群青主色文字档、
  * accent-2 = 群青图形档、jade/spring/cinnabar = 必中/超欧/歪警示语义色。
- * 字体文件属 T17 构建期内置,当前以系统栈回退。
+ * 字体文件经 src/styles/fonts.css 内置(T17,src/assets/fonts;OFL 许可随附)。
  */
 :root {
-  /* 字体(board.html --num/--tech/--mono/--cjk;暂用系统回退) */
+  /* 字体(board.html --num/--tech/--mono/--cjk) */
   --font-num: 'Italiana', 'Palatino', 'Georgia', serif;
   --font-tech: 'Jura', 'PingFang SC', 'Microsoft YaHei', sans-serif;
   --font-mono: 'Geist Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;

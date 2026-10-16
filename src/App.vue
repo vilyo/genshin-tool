@@ -2,6 +2,7 @@
 import { onMounted, ref } from 'vue'
 import AppTitleBar from '@/components/AppTitleBar.vue'
 import ArchiveSwitchConfirm from '@/components/ArchiveSwitchConfirm.vue'
+import BoardView from '@/components/board/BoardView.vue'
 import ExcelPreviewDialog from '@/components/ExcelPreviewDialog.vue'
 import FetchDialog from '@/components/FetchDialog.vue'
 import PasteDialog from '@/components/PasteDialog.vue'
@@ -10,7 +11,7 @@ import UidSelectDialog from '@/components/UidSelectDialog.vue'
 import { useAppStore } from '@/stores/app'
 
 // 应用壳(F1 装配):标题栏 + 主区域挂载点 + 全局对话框层。
-// 主统计画面(T17)与档案/设置(T18)后续任务在此挂载点就位。
+// 有档案时主区域挂主统计画面(T17 V5「璇玑」主版面),空态引导三入口。
 
 const store = useAppStore()
 // 粘贴弹窗开关:顶栏下拉与空态入口共用;其余弹窗均为 store 状态驱动
@@ -68,19 +69,8 @@ onMounted(async () => {
           </button>
         </div>
       </section>
-      <!-- 有档案:挂载点占位(统计画面属 T17) -->
-      <section
-        v-else
-        class="archive-overview"
-        aria-label="档案概览"
-      >
-        <p class="overview-line">
-          UID {{ store.currentUid }} · 共 {{ store.records.length }} 条祈愿记录
-        </p>
-        <p class="overview-sub">
-          统计画面(池页签 / 保底带 / 五星名册 / 欧非总账)将在后续任务落地。
-        </p>
-      </section>
+      <!-- 有档案:主统计画面(V5「璇玑」主版面,T17) -->
+      <BoardView v-else />
     </main>
 
     <!-- 全局对话框层:共用拉取管线 + F1 各待决分支 + Excel 预览 -->
@@ -121,7 +111,8 @@ onMounted(async () => {
   min-height: 0;
   display: flex;
   flex-direction: column;
-  padding: 24px;
+  /* 主画面自带内边距,壳层零内边距让版面通栏 */
+  padding: 0;
 }
 
 .empty-state {
@@ -153,23 +144,5 @@ onMounted(async () => {
   display: flex;
   gap: 10px;
   margin-top: 4px;
-}
-
-.archive-overview {
-  margin: auto;
-  text-align: center;
-}
-
-.overview-line {
-  margin: 0;
-  font-size: 15px;
-  letter-spacing: 0.08em;
-  color: var(--fg);
-}
-
-.overview-sub {
-  margin: 10px 0 0;
-  font-size: 12px;
-  color: var(--dim);
 }
 </style>

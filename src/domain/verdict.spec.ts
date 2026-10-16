@@ -274,11 +274,13 @@ describe('applyVerdict 视图组装(spec D11/D12 其余字段)', () => {
     expect(applyVerdict(computePoolStats('eventChar', records)).guaranteed).toBe(false)
   })
 
-  it('名单可能过期:池级 rosterStale 透传为提示旗标', () => {
+  it('名单可能过期:池级 rosterStale(常驻池名单外五星)透传为提示旗标', () => {
     const records = [
       rec(301, 0, '迪卢克', 5),
       ...fillers(301, 1, 5),
-      rec(301, 6, '虚构的新常驻角色', 5), // 名单查无 → 按 UP + rosterStale(ADR-0003 §4)
+      rec(301, 6, '提纳里', 5), // UP,末个五星 → 未就绪
+      // T17 返工口径:常驻池五星全名单查无 → 池级旗标(经 applyVerdict 透传)
+      rec(200, 7, '虚构的新常驻角色', 5),
     ]
     const view = applyVerdict(computePoolStats('eventChar', records))
     expect(view.rosterStale).toBe(true)

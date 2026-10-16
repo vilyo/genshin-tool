@@ -1,0 +1,49 @@
+/*
+ * V5「璇玑」主版面 token(board.html THEMES 抄录,T17 主画面专用):
+ * 量距条/稀有行/保底标尺的主题色按双主题各自校准(V5.2:稀有行洗色独立 token,
+ * 双主题感知等权;昼版「正常」档文字用深冷灰保证 AA)。档位色 = 领域语义色,
+ * 与 verdict.degreeOf 四档一一对应:超欧 spring / 欧 accent / 正常 冷灰 / 超非 cinnabar。
+ */
+:root {
+  --zone-super-lucky: #8fd9a8;
+  --zone-lucky: #82a8ea;
+  --zone-normal: #8fa0b0;
+  --zone-unlucky: #d96f7c;
+  --meter-track: rgba(255, 255, 255, 0.035);
+  --meter-seg-0: rgba(143, 217, 168, 0.07);
+  --meter-seg-1: rgba(130, 168, 234, 0.07);
+  --meter-seg-2: rgba(233, 238, 244, 0.03);
+  --meter-seg-3: rgba(217, 111, 124, 0.08);
+  --rare-bg-super-lucky: rgba(143, 217, 168, 0.09);
+  --rare-edge-super-lucky: rgba(143, 217, 168, 0.55);
+  --rare-bg-unlucky: rgba(217, 111, 124, 0.1);
+  --rare-edge-unlucky: rgba(217, 111, 124, 0.55);
+  --pity-track: #161e2a;
+  --pity-hatch: rgba(130, 168, 234, 0.5);
+  --pity-boundary: rgba(130, 168, 234, 0.5);
+  --pity-fill-a: rgba(79, 196, 176, 0.95);
+  --pity-fill-b: rgba(56, 152, 138, 0.75);
+  --tip-stroke: #0c1118;
+}
+
+html[data-theme='light'] {
+  --zone-super-lucky: #2f8f63;
+  --zone-lucky: #2e509c;
+  --zone-normal: #676d75;
+  --zone-unlucky: #be4e60;
+  --meter-track: rgba(58, 54, 46, 0.07);
+  --meter-seg-0: rgba(47, 143, 99, 0.1);
+  --meter-seg-1: rgba(62, 99, 184, 0.09);
+  --meter-seg-2: rgba(90, 98, 110, 0.05);
+  --meter-seg-3: rgba(190, 78, 96, 0.1);
+  --rare-bg-super-lucky: rgba(47, 143, 99, 0.085);
+  --rare-edge-super-lucky: rgba(47, 143, 99, 0.55);
+  --rare-bg-unlucky: rgba(190, 78, 96, 0.085);
+  --rare-edge-unlucky: rgba(190, 78, 96, 0.55);
+  --pity-track: #e9e3d4;
+  --pity-hatch: rgba(62, 99, 184, 0.45);
+  --pity-boundary: rgba(62, 99, 184, 0.5);
+  --pity-fill-a: rgba(23, 112, 104, 0.95);
+  --pity-fill-b: rgba(15, 88, 80, 0.75);
+  --tip-stroke: #ffffff;
+}

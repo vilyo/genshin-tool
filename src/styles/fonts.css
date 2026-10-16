@@ -1,0 +1,39 @@
+/*
+ * V5 内置字体(docs/prototype/v5-concept/assets/fonts 同源副本,仓库内静态资源随包内置):
+ * Italiana 錾刻体 = 读数/评级字母(--font-num);Jura 细体大写 = 铭牌(--font-tech);
+ * Geist Mono = 仪表注记(--font-mono)。OFL 许可随 fonts 目录同附(*-OFL.txt)。
+ */
+@font-face {
+  font-family: 'Italiana';
+  src: url('../assets/fonts/Italiana-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Jura';
+  src: url('../assets/fonts/Jura-Light.ttf') format('truetype');
+  font-weight: 300;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Jura';
+  src: url('../assets/fonts/Jura-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Geist Mono';
+  src: url('../assets/fonts/GeistMono-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Geist Mono';
+  src: url('../assets/fonts/GeistMono-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-display: swap;
+}
