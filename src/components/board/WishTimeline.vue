@@ -6,7 +6,7 @@ import type { TimelineRow } from '@/stores/board'
 
 /**
  * 祈愿时间线(V5.1 量距条语法,左栏主列表):一行一次五星出货,新的在前。
- * 行 = 首字占位章 + 物品名(C/R 标签随名)+ 日期与池名 + 量距条(条长 = pulls/硬保底
+ * 行 = 头像章(ADR-0005 内置图标按 V5 菱形镶嵌,未知名回退首字占位章)+ 物品名(C/R 标签随名)+ 日期与池名 + 量距条(条长 = pulls/硬保底
  * 归一化、条色 = degreeOf 四档、背景轨四段分段与界线刻度、菱形游标)+ 右侧结果区
  * (档位词/抽数/抽/歪章)——结果区按 grid 固定列模板对齐(档位词右缘、数字个位、
  * 单位、结果章四列垂直轨,DESIGN §3)。抽数与档色只来自 stats.fives × degreeOf。
@@ -21,6 +21,11 @@ const props = defineProps<{
 }>()
 
 defineEmits<{ 'open-ledger': [] }>()
+
+/** 行 + 头像解析一次算好(avatarFor:清单命中为内置图标,否则首字占位章) */
+const decoratedRows = computed(() =>
+  props.rows.map((row) => ({ row, avatar: avatarFor(row.five.record.name) })),
+)
 
 const countByDegree = computed(() => {
   const counts = { superLucky: 0, unlucky: 0 }
@@ -84,7 +89,7 @@ function meterLabel(row: TimelineRow): string {
     </p>
     <ol class="timeline-rows">
       <li
-        v-for="(row, index) in rows"
+        v-for="({ row, avatar }, index) in decoratedRows"
         :key="`${row.five.record.time}-${row.five.record.name}-${index}`"
         class="wish-row"
         :class="rowClass(row)"
@@ -92,7 +97,15 @@ function meterLabel(row: TimelineRow): string {
         <span
           class="wish-seal"
           aria-hidden="true"
-        ><span>{{ avatarFor(row.five.record.name).char }}</span></span>
+        >
+          <img
+            v-if="avatar.kind === 'icon'"
+            class="seal-img"
+            :src="avatar.url"
+            alt=""
+          >
+          <span v-else>{{ avatar.char }}</span>
+        </span>
         <div class="wish-name">
           <div class="nm1">
             {{ row.five.record.name }}<span
@@ -285,6 +298,14 @@ function meterLabel(row: TimelineRow): string {
   font-size: 16px;
   font-weight: 500;
   color: var(--accent);
+}
+
+/* 图标形态(ADR-0005):立像按菱形裁切镶嵌在内描边之内,底色/双描边沿用 */
+.wish-seal .seal-img {
+  position: absolute;
+  inset: 6px;
+  object-fit: cover;
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
 }
 
 .wish-name {

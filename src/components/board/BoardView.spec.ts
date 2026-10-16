@@ -8,6 +8,7 @@ import type { ArchiveSummary } from '@/domain/ports'
 import { useAppStore } from '@/stores/app'
 import { useBoardStore } from '@/stores/board'
 import BoardView from './BoardView.vue'
+import { avatarFor } from './boardDisplay'
 import { storedRecord } from '@/test-support/appFakes'
 
 /**
@@ -212,6 +213,78 @@ describe('BoardView · 名册切换与流水抽屉', () => {
     await tabByText(wrapper, '未收录').trigger('click')
     expect(wrapper.find('.unknown-list').exists()).toBe(true)
     expect(wrapper.text()).toContain('未收录祈愿 1000')
+  })
+})
+
+describe('BoardView · 头像图标接入(T19,ADR-0005 avatarFor 消费方)', () => {
+  /** 名册夹具的五个物品名(卡片名含计数角标,按前缀反查) */
+  const FIXTURE_FIVES = ['刻晴', '那维莱特', '雷电将军', '迪卢克', '莫娜']
+
+  it('时间线头像章:清单命中渲染 img(src 与 avatarFor 图标 URL 一致)', () => {
+    const { wrapper } = mountBoard()
+    const rows = wrapper.findAll('.wish-row')
+    expect(rows).toHaveLength(5)
+    for (const row of rows) {
+      // 夹具五星全部在内置清单内:icon 形态;名带 C/R 标注,先剥出物品名再求映射
+      const name = row.find('.nm1').text().split('·')[0]!.trim()
+      const expected = avatarFor(name)
+      expect(expected.kind, name).toBe('icon')
+      expect(row.find('.wish-seal img').attributes('src'), name).toBe(expected.url)
+    }
+  })
+
+  it('时间线头像章:未知名回退首字占位章(无 img)', () => {
+    const { wrapper } = mountWith([
+      storedRecord({ gachaType: 301, name: '未来新角色', rankType: 5, time: '2026-05-01 10:00:00' }),
+    ])
+    const seal = wrapper.find('.wish-seal')
+    expect(seal.find('img').exists()).toBe(false)
+    expect(seal.text()).toBe('未')
+  })
+
+  it('名册卡片章:清单命中渲染 img(src 与 avatarFor 图标 URL 一致)', async () => {
+    const { wrapper } = mountBoard()
+    await wrapper.findAll('.view-switch button').find((button) => button.text() === '名册')!.trigger('click')
+    const cards = wrapper.findAll('.roster-card')
+    expect(cards).toHaveLength(5)
+    for (const card of cards) {
+      const name = FIXTURE_FIVES.find((candidate) =>
+        card.find('.card-name').text().startsWith(candidate),
+      )
+      expect(name, card.find('.card-name').text()).toBeDefined()
+      const expected = avatarFor(name!)
+      expect(expected.kind, name).toBe('icon')
+      expect(card.find('.card-seal img').attributes('src'), name).toBe(expected.url)
+    }
+  })
+
+  it('名册卡片章:未知名回退首字占位章(无 img)', async () => {
+    const { wrapper } = mountWith([
+      storedRecord({ gachaType: 301, name: '未来新角色', rankType: 5, time: '2026-05-01 10:00:00' }),
+    ])
+    await wrapper.findAll('.view-switch button').find((button) => button.text() === '名册')!.trigger('click')
+    const seal = wrapper.find('.card-seal')
+    expect(seal.find('img').exists()).toBe(false)
+    expect(seal.text()).toBe('未')
+  })
+
+  it('高光·出手如电:最快五星头像章清单命中渲染 img', () => {
+    const { wrapper } = mountBoard()
+    // 夹具最快完整五星 = 雷电将军 8 抽
+    const seal = wrapper.find('.hl-seal')
+    expect(seal.find('img').exists()).toBe(true)
+    expect(seal.find('img').attributes('src')).toBe(avatarFor('雷电将军').url)
+  })
+
+  it('高光·出手如电:未知名回退首字占位章(无 img)', () => {
+    // 首五星恒不完整不参与最快,补一条完整出货(未知名 → 占位章)
+    const { wrapper } = mountWith([
+      storedRecord({ gachaType: 301, name: '未来新角色', rankType: 5, time: '2026-05-01 10:00:00' }),
+      storedRecord({ gachaType: 301, name: '未来新角色', rankType: 5, time: '2026-05-01 12:00:00' }),
+    ])
+    const seal = wrapper.find('.hl-seal')
+    expect(seal.find('img').exists()).toBe(false)
+    expect(seal.text()).toBe('未')
   })
 })
 

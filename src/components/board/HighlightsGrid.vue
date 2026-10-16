@@ -1,11 +1,20 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { guaranteedReadyText, type HighlightsView } from '@/domain/highlights'
+import { avatarFor } from './boardDisplay'
 
 /**
  * 高光时刻 2×2(spec 04 §6):旅途总览 / 出手如电 / 漫长等待 / 大保底就绪。
  * 数据全部来自 buildHighlights 产物;大保底就绪 null 时显空态文案。
+ * 出手如电卡带头像章(ADR-0005 内置图标菱形镶嵌,未知名回退首字占位章)。
  */
-defineProps<{ highlights: HighlightsView }>()
+const props = defineProps<{ highlights: HighlightsView }>()
+
+/** 最快五星的头像解析(无完整五星时 null,与 fastest 同步) */
+const fastestAvatar = computed(() => {
+  const fastest = props.highlights.fastest
+  return fastest === null ? null : avatarFor(fastest.name)
+})
 </script>
 
 <template>
@@ -33,7 +42,18 @@ defineProps<{ highlights: HighlightsView }>()
           {{ highlights.fastest.pulls }}<small>抽</small>
         </div>
         <div class="hl-s">
-          {{ highlights.fastest.name }} · {{ highlights.fastest.date }} · {{ highlights.fastest.pool }}<template v-if="highlights.fastest.outcome !== null"> · {{ highlights.fastest.outcome }}</template>
+          <span
+            class="hl-seal"
+            aria-hidden="true"
+          >
+            <img
+              v-if="fastestAvatar?.kind === 'icon'"
+              class="seal-img"
+              :src="fastestAvatar?.url"
+              alt=""
+            >
+            <span v-else>{{ fastestAvatar?.char }}</span>
+          </span>{{ highlights.fastest.name }} · {{ highlights.fastest.date }} · {{ highlights.fastest.pool }}<template v-if="highlights.fastest.outcome !== null"> · {{ highlights.fastest.outcome }}</template>
         </div>
       </template>
       <div
@@ -123,6 +143,46 @@ defineProps<{ highlights: HighlightsView }>()
   line-height: 1.7;
   color: var(--dim);
   letter-spacing: 0.03em;
+}
+
+/* 出手如电头像章(V5 菱章语法缩小版,单描边) */
+.hl-seal {
+  position: relative;
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  margin-right: 8px;
+  vertical-align: -6px;
+}
+
+.hl-seal::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 1px solid var(--accent-deep);
+  border-radius: 3px;
+  transform: rotate(45deg);
+  background: var(--seal-bg);
+}
+
+/* 占位形态:首字居中(与时间线/名册章同款,字号随 20px 章缩小) */
+.hl-seal > span {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--accent);
+}
+
+/* 图标形态(ADR-0005):立像按菱形裁切镶嵌在描边之内,底色/描边沿用 */
+.hl-seal .seal-img {
+  position: absolute;
+  inset: 3px;
+  object-fit: cover;
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
 }
 
 .hl-empty {

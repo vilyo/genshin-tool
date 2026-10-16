@@ -6,7 +6,8 @@ import { ROSTER_CONSTELLATION_NOTE } from '@/domain/roster'
 import { avatarFor, acquireTag } from './boardDisplay'
 
 /**
- * 五星名册(左栏补充视图,spec 04 §4):按物品分组的卡片——名 + 获取列表
+ * 五星名册(左栏补充视图,spec 04 §4):按物品分组的卡片——头像章(ADR-0005 内置图标
+ * 菱形镶嵌,未知名回退首字占位章)+ 名 + 获取列表
  * (新的在前:拉数/歪章/日期/池名),顶部汇总芯片(UP n · 歪 n · 超欧 n · 超非 n),
  * 尾注 ROSTER_CONSTELLATION_NOTE。数据全部来自 buildRoster 产物;C/R 标注经
  * acquireTag(scope, …) 选型(constellationOf/refinementOf 换算),组件零口径。
@@ -17,6 +18,11 @@ const props = defineProps<{
 }>()
 
 const summary = computed(() => props.roster.summary)
+
+/** 卡片 + 头像解析一次算好(avatarFor:清单命中为内置图标,否则首字占位章) */
+const cards = computed(() =>
+  props.roster.cards.map((card) => ({ card, avatar: avatarFor(card.name) })),
+)
 </script>
 
 <template>
@@ -47,7 +53,7 @@ const summary = computed(() => props.roster.summary)
     </p>
     <div class="roster-cards">
       <article
-        v-for="card in roster.cards"
+        v-for="{ card, avatar } in cards"
         :key="card.name"
         class="roster-card"
       >
@@ -55,7 +61,15 @@ const summary = computed(() => props.roster.summary)
           <span
             class="card-seal"
             aria-hidden="true"
-          ><span>{{ avatarFor(card.name).char }}</span></span>
+          >
+            <img
+              v-if="avatar.kind === 'icon'"
+              class="seal-img"
+              :src="avatar.url"
+              alt=""
+            >
+            <span v-else>{{ avatar.char }}</span>
+          </span>
           <h3 class="card-name">
             {{ card.name }}
             <span class="card-count">{{ card.acquisitions.length }}</span>
@@ -202,6 +216,14 @@ const summary = computed(() => props.roster.summary)
   font-size: 12px;
   font-weight: 500;
   color: var(--accent);
+}
+
+/* 图标形态(ADR-0005):立像按菱形裁切镶嵌在描边之内,底色/描边沿用 */
+.card-seal .seal-img {
+  position: absolute;
+  inset: 3px;
+  object-fit: cover;
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
 }
 
 .card-name {
