@@ -1,13 +1,15 @@
 /**
  * 主画面显示映射助手(T17):领域值 → 视觉编码的薄映射层。
- * 只调用 domain 纯函数,不定义任何统计口径;头像/图标包(ADR-0005) future 接入点在
- * avatarFor——当前一律返回首字占位章。
+ * 只调用 domain 纯函数,不定义任何统计口径;头像/图标包(ADR-0005)经 avatarFor
+ * 接入:构建期清单(src/assets/icons/manifest.json,fetch-icons.mjs 产物)有映射
+ * 返回图标 URL,缺映射/缺文件回退首字占位章,不阻塞渲染。
  */
 import { constellationOf, refinementOf } from '@/domain/roster'
 import { STANDARD_ROSTER } from '@/domain/standardRoster'
 import type { PoolCategory } from '@/domain/pools'
 import type { RosterView } from '@/domain/roster'
 import { degreeOf, type Degree } from '@/domain/verdict'
+import iconManifest from '@/assets/icons/manifest.json'
 
 /** 程度档的显示词与 CSS 档色类(量距条/档位词/印签共用) */
 export const DEGREE_META: Record<Degree, { label: string; cls: string }> = {
@@ -17,9 +19,46 @@ export const DEGREE_META: Record<Degree, { label: string; cls: string }> = {
   unlucky: { label: '超非', cls: 'deg-unlucky' },
 }
 
-/** 头像映射(ADR-0005 图标包接入点):当前为首字占位章 */
-export function avatarFor(name: string): { kind: 'placeholder'; char: string } {
-  return { kind: 'placeholder', char: name.slice(0, 1) }
+/** 头像解析结果:icon = 内置图标(ADR-0005);placeholder = 首字占位章(兜底) */
+export type Avatar =
+  | { kind: 'icon'; char: string; url: string }
+  | { kind: 'placeholder'; char: string; url: null }
+
+/** 清单条目(fetch-icons.mjs 产物):path 相对 icons 目录;weapon = 武器子类型文案 */
+interface IconManifestEntry {
+  path: string
+  weapon?: string
+}
+
+/** 静态内置清单(manifest.json 随应用打包);重跑 npm run icons 更新 */
+const ICON_MANIFEST = iconManifest as Record<string, IconManifestEntry>
+
+/**
+ * 构建期内置图标的 URL 索引:import.meta.glob 构建期展开为「文件路径 → 资源 URL」,
+ * 运行时零出网取图(G4)。清单位置与 glob 基准一致(本文件上两级的 assets/icons)。
+ */
+const ICON_URLS = import.meta.glob('../../assets/icons/**/*.png', {
+  eager: true,
+  query: '?url',
+  import: 'default',
+}) as Record<string, string>
+
+/**
+ * 头像映射(ADR-0005):清单有该名称且对应文件已内置 → 图标 URL;
+ * 名称未收录(新内容未重跑脚本)或文件缺失 → 首字占位章。
+ * manifest 参数默认取内置清单,测试可注入合成清单验证映射与回退两路。
+ */
+export function avatarFor(
+  name: string,
+  manifest: Record<string, IconManifestEntry> = ICON_MANIFEST,
+): Avatar {
+  const char = name.slice(0, 1)
+  const entry = manifest[name]
+  const url = entry === undefined ? undefined : ICON_URLS[`../../assets/icons/${entry.path}`]
+  if (entry !== undefined && url !== undefined) {
+    return { kind: 'icon', char, url }
+  }
+  return { kind: 'placeholder', char, url: null }
 }
 
 /** 名单内物品的类别(名单外 null;仅用于 C/R 标注的选型,不作任何判定) */

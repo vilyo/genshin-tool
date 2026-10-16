@@ -111,6 +111,8 @@ export interface FakeStorage {
     insertRecords: ReturnType<typeof vi.fn>
     migrateArchive: ReturnType<typeof vi.fn>
     ensureArchive: ReturnType<typeof vi.fn>
+    clearArchive: ReturnType<typeof vi.fn>
+    updateIdentity: ReturnType<typeof vi.fn>
   }
 }
 
@@ -124,6 +126,8 @@ export function makeFakeStorage(seed: Record<string, StoredRecord[]> = {}): Fake
     insertRecords: vi.fn(),
     migrateArchive: vi.fn(),
     ensureArchive: vi.fn(),
+    clearArchive: vi.fn(),
+    updateIdentity: vi.fn(),
   }
   const storage: StoragePort = {
     loadRecords: async (uid) => [...(db.get(uid) ?? [])],
@@ -140,13 +144,23 @@ export function makeFakeStorage(seed: Record<string, StoredRecord[]> = {}): Fake
       db.set(uid, list)
       return rows.length
     },
-    updateIdentity: async () => 0,
+    updateIdentity: async (updates) => {
+      calls.updateIdentity(updates)
+      return updates.length
+    },
     getWatermark: async () => null,
     setWatermark: async () => {},
     setLastSynced: async (uid, iso) => {
       lastSynced.set(uid, iso)
     },
-    clearArchive: async () => 0,
+    clearArchive: async (uid) => {
+      calls.clearArchive(uid)
+      // 对齐 Rust db_clear_archive:记录+水位+last_synced 同清,档案行(键)保留
+      const removed = (db.get(uid) ?? []).length
+      db.set(uid, [])
+      lastSynced.delete(uid)
+      return removed
+    },
     migrateArchive: async (from, to) => {
       calls.migrateArchive(from, to)
       const rows = db.get(from) ?? []

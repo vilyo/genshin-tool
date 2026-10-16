@@ -1,5 +1,6 @@
 mod db;
 mod excel;
+mod fsx;
 mod gacha;
 mod probe;
 
@@ -24,6 +25,9 @@ pub fn run() {
             probe::webcache_candidates,
             probe::copy_to_temp,
             probe::read_file_bytes,
+            fsx::save_text_file,
+            fsx::read_text_file,
+            fsx::pick_directory,
         ])
         .build(tauri::generate_context!())
         .expect("Tauri 应用初始化失败")

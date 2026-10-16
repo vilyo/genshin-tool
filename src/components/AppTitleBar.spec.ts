@@ -19,15 +19,17 @@ afterEach(() => {
 })
 
 describe('标题栏装配', () => {
-  it('品牌与入口齐备:一键获取/手动导入/主题/设置占位(禁用)', () => {
+  it('品牌与入口齐备:一键获取/手动导入/主题/设置(T18 启用)', async () => {
     const wrapper = mountBar()
 
     expect(wrapper.find('.brand-name').text()).toBe('原神工具箱')
     expect(wrapper.text()).toContain('一键获取')
     expect(wrapper.text()).toContain('手动导入')
     const settings = wrapper.findAll('button').find((button) => button.text() === '设置')!
-    expect(settings.attributes('disabled')).toBeDefined()
+    expect(settings.attributes('disabled')).toBeUndefined()
     expect(wrapper.find('button[aria-label="切换主题"]').exists()).toBe(true)
+    await settings.trigger('click')
+    expect(useAppStore().settingsOpen).toBe(true)
   })
 
   it('UID 芯片随当前档案显隐', async () => {

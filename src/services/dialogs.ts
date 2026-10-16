@@ -20,6 +20,30 @@ export const LINK_FILE_PICK: FilePickSpec = {
   filters: [{ name: '全部文件', extensions: ['*'] }],
 }
 
+/** 备份导入(PRD F4:自有 JSON 格式 genshintool-backup-*.json) */
+export const BACKUP_FILE_PICK: FilePickSpec = {
+  title: '选择备份文件',
+  filters: [{ name: 'JSON 备份', extensions: ['json'] }],
+}
+
+/** 备份导出的保存对话框参数(defaultPath = 默认文件名) */
+export interface FileSaveSpec {
+  title: string
+  defaultPath: string
+  filters: { name: string; extensions: string[] }[]
+}
+
+/** 导出备份:系统保存对话框定路径,取消返回 null */
+export async function pickSavePath(spec: FileSaveSpec): Promise<string | null> {
+  const { save } = await import('@tauri-apps/plugin-dialog')
+  const selected = await save({
+    title: spec.title,
+    defaultPath: spec.defaultPath,
+    filters: spec.filters,
+  })
+  return typeof selected === 'string' ? selected : null
+}
+
 /** 单选文件;取消返回 null */
 export async function pickFile(spec: FilePickSpec): Promise<string | null> {
   const { open } = await import('@tauri-apps/plugin-dialog')

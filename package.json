@@ -11,7 +11,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "vue-tsc --noEmit",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "icons": "node scripts/fetch-icons.mjs"
   },
   "dependencies": {
     "@tauri-apps/api": "^2",
@@ -28,6 +29,7 @@
     "@vue/test-utils": "^2.4",
     "eslint": "^9",
     "eslint-plugin-vue": "^10",
+    "genshin-db": "^5.2.14",
     "jsdom": "^27",
     "typescript": "~5.9",
     "vite": "^7",

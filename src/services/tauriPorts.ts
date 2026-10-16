@@ -153,3 +153,37 @@ export async function copyToTemp(path: string): Promise<string> {
     throw toProbeError(raw)
   }
 }
+
+// ---------------------------------------------------------------------------
+// 备份文件与目录指定(T18;fsx.rs 命令,全平台可用)
+// ---------------------------------------------------------------------------
+
+/** 经 Rust save_text_file 写文本文件(备份导出落盘),返回写入字节数 */
+export async function saveTextFile(path: string, contents: string): Promise<number> {
+  try {
+    return await invoke<number>('save_text_file', { path, contents })
+  } catch (raw) {
+    throw new Error(asMessage(raw, '写入备份文件失败'))
+  }
+}
+
+/**
+ * 经 Rust read_text_file 读备份文本:64MB 第一道门禁在 Rust 侧按真实文件大小拒绝
+ * (spec 01 §6),读入后前端 parseBackup 为解析层兜底门。
+ */
+export async function readTextFile(path: string): Promise<string> {
+  try {
+    return await invoke<string>('read_text_file', { path })
+  } catch (raw) {
+    throw new Error(asMessage(raw, '读取备份文件失败'))
+  }
+}
+
+/** 系统目录选择对话框(手动指定游戏客户端目录),取消返回 null */
+export async function pickDirectory(): Promise<string | null> {
+  try {
+    return await invoke<string | null>('pick_directory')
+  } catch (raw) {
+    throw new Error(asMessage(raw, '打开目录选择对话框失败'))
+  }
+}

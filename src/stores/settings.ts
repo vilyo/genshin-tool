@@ -5,6 +5,7 @@
 export const STORAGE_KEYS = {
   theme: 'genshintool.theme',
   autoSync: 'genshintool.autoSync',
+  gameDir: 'genshintool.gameDir',
 } as const
 
 export type ThemeName = 'dark' | 'light'
@@ -41,4 +42,24 @@ export function loadAutoSync(): boolean {
 
 export function saveAutoSync(enabled: boolean): void {
   write(STORAGE_KEYS.autoSync, enabled ? 'true' : 'false')
+}
+
+/**
+ * 手动指定的游戏客户端目录(PRD F5):v1 自动探测优先,手动指定仅作面板展示与
+ * 后续版本使用,不参与一键获取的探测链路(T18 裁决)。
+ */
+export function loadGameDir(): string | null {
+  return read(STORAGE_KEYS.gameDir)
+}
+
+export function saveGameDir(path: string | null): void {
+  if (path === null) {
+    try {
+      localStorage.removeItem(STORAGE_KEYS.gameDir)
+    } catch {
+      // 存储不可用时跳过清除
+    }
+    return
+  }
+  write(STORAGE_KEYS.gameDir, path)
 }

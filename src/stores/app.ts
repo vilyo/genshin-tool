@@ -29,6 +29,14 @@ import type {
   GachaApiPort,
   StoragePort,
 } from '@/domain/ports'
+import {
+  BACKUP_MAX_BYTES,
+  backupFileName,
+  exportBackup as buildBackupFile,
+  importBackup as mergeBackupInto,
+  parseBackup,
+  type BackupImportResult,
+} from '@/domain/backup'
 import { probeCandidates, type ProbeCandidate } from '@/domain/probe'
 import type { StoredRecord } from '@/domain/records'
 import type { SyncDeps } from '@/domain/syncPool'
@@ -39,24 +47,30 @@ import {
   type SyncAllResult,
 } from '@/domain/syncAll'
 import {
+  BACKUP_FILE_PICK,
   LINK_FILE_PICK,
   XLSX_PICK,
   pickFile,
+  pickSavePath,
   type FilePickSpec,
+  type FileSaveSpec,
 } from '@/services/dialogs'
 import { tauriExcel } from '@/services/excelPort'
 import {
   copyToTemp,
   listGameDirs,
+  pickDirectory,
+  readTextFile,
   realClock,
   tauriFile,
   tauriGachaApi,
   tauriStorage,
   webcacheCandidates,
+  saveTextFile as writeTextFileRaw,
   type CacheFileInfo,
   type GameDirInfo,
 } from '@/services/tauriPorts'
-import { loadAutoSync } from '@/stores/settings'
+import { loadAutoSync, loadGameDir, saveGameDir } from '@/stores/settings'
 
 function errorText(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
@@ -76,6 +90,14 @@ export interface AppDeps {
   webcacheCandidates(gameDir: string): Promise<CacheFileInfo[]>
   copyToTemp(path: string): Promise<string>
   pickFile(spec: FilePickSpec): Promise<string | null>
+  /** 备份导出的系统保存对话框(T18;取消返回 null) */
+  saveFile(spec: FileSaveSpec): Promise<string | null>
+  /** 备份落盘写文本(Rust save_text_file;备份导出用) */
+  writeTextFile(path: string, contents: string): Promise<number>
+  /** 备份导入读文本(64MB 真实大小门禁在 Rust read_text_file) */
+  readTextFile(path: string): Promise<string>
+  /** 手动指定游戏客户端目录的系统对话框(T18;取消返回 null) */
+  pickDirectory(): Promise<string | null>
 }
 
 const realDeps: AppDeps = {
@@ -88,6 +110,10 @@ const realDeps: AppDeps = {
   webcacheCandidates,
   copyToTemp,
   pickFile,
+  saveFile: pickSavePath,
+  writeTextFile: writeTextFileRaw,
+  readTextFile,
+  pickDirectory,
 }
 
 let deps: AppDeps = realDeps
@@ -176,6 +202,17 @@ export function canonicalizePastedText(text: string): string[] {
 }
 
 /**
+ * 设置面板的游戏目录自动探测展示(PRD F5):unsupported = macOS 等非 Windows 平台,
+ * empty = 未找到,found = 找到的目录列表,error = 探测失败文案。
+ */
+export type GameDirProbeView =
+  | { state: 'loading' }
+  | { state: 'unsupported' }
+  | { state: 'empty' }
+  | { state: 'found'; dirs: GameDirInfo[] }
+  | { state: 'error'; text: string }
+
+/**
  * 应用 store:档案状态 + F1 全部交互流(一键获取/粘贴/文件导入/Excel 迁入)的编排胶水。
  * 三入口汇合同一条 probe → syncAll 管线(spec 02 §4);D9 多候选、uid 不一致确认切换、
  * '0' 哨兵并入、S7 过期文案等分支全在这里落状态,组件只读状态驱动渲染。
@@ -224,8 +261,35 @@ export const useAppStore = defineStore('app', () => {
   // —— 粘贴弹窗的行内错误(先于管线的本地规范化失败)——
   const pasteError = ref<string | null>(null)
 
+  // —— 设置面板(T18,F4/F5)——
+  const settingsOpen = ref(false)
+
+  /** 设置面板的游戏目录自动探测展示(PRD F5;一键获取的探测链路不读手动目录) */
+  const dirProbe = ref<GameDirProbeView>({ state: 'loading' })
+  /** 手动指定的游戏客户端目录(仅作面板展示与后续版本使用,不参与获取) */
+  const manualGameDir = ref<string | null>(loadGameDir())
+
+  /** 备份导出/导入/清空进行中(纳入 busy 闸门,与拉取管线互斥) */
+  const backupPending = ref(false)
+
+  /** 备份导入的预览确认(spec 01 §6:先算新增/回填/跳过,确认后才落库) */
+  const pendingBackupImport = ref<{
+    targetUid: string
+    isCurrent: boolean
+    result: BackupImportResult
+  } | null>(null)
+
+  /** 清空当前档案的二次确认(F4) */
+  const pendingClear = ref(false)
+
   const busy = computed(
-    () => loading.value || probing.value || syncing.value || excelLoading.value || excelApplying.value,
+    () =>
+      loading.value ||
+      probing.value ||
+      syncing.value ||
+      excelLoading.value ||
+      excelApplying.value ||
+      backupPending.value,
   )
 
   function syncDeps(): SyncDeps {
@@ -685,6 +749,204 @@ export const useAppStore = defineStore('app', () => {
     }
   }
 
+  // ---------------------------------------------------------------------------
+  // T18:设置面板(F5)/ 备份导出导入(F4)/ 清空数据(F4)
+  // ---------------------------------------------------------------------------
+
+  function openSettings(): void {
+    settingsOpen.value = true
+    // 每次打开都重探一次(结果随时可能变化;失败/平台不支持在面板内呈现)
+    void refreshGameDirs()
+  }
+
+  /** 关闭面板连带收起其嵌套浮层(清空确认/导入预览),不留半开的待决状态 */
+  function closeSettings(): void {
+    settingsOpen.value = false
+    pendingClear.value = false
+    pendingBackupImport.value = null
+  }
+
+  /** 面板的目录自动探测展示:UnsupportedPlatform = 非 Windows(macOS 引导手动粘贴) */
+  async function refreshGameDirs(): Promise<void> {
+    dirProbe.value = { state: 'loading' }
+    try {
+      const dirs = await deps.listGameDirs()
+      dirProbe.value = dirs.length > 0 ? { state: 'found', dirs } : { state: 'empty' }
+    } catch (error) {
+      if (error instanceof UnsupportedPlatformError) dirProbe.value = { state: 'unsupported' }
+      else dirProbe.value = { state: 'error', text: errorText(error) }
+    }
+  }
+
+  /**
+   * 手动指定游戏客户端目录(T18 裁决):仅存 localStorage 作面板展示与后续版本使用,
+   * v1 自动探测优先,不参与一键获取的探测链路。
+   */
+  async function chooseGameDirManually(): Promise<void> {
+    try {
+      const path = await deps.pickDirectory()
+      if (path === null) return // 取消选目录:静默
+      saveGameDir(path)
+      manualGameDir.value = path
+    } catch (error) {
+      message.value = { kind: 'error', text: `选择目录失败:${errorText(error)}` }
+    }
+  }
+
+  /**
+   * 导出当前档案为 JSON 备份(PRD F4 / spec 01 §6):保存对话框定路径(取消静默),
+   * 前端组装 BackupFile 后经 Rust save_text_file 落盘。
+   */
+  async function exportBackupFile(): Promise<void> {
+    if (busy.value) return // 与拉取/Excel 管线互斥(busy 含 backupPending)
+    if (currentUid.value === null) {
+      message.value = { kind: 'error', text: '尚无祈愿档案,先完成一次获取或导入再导出备份。' }
+      return
+    }
+    backupPending.value = true
+    try {
+      const uid = currentUid.value
+      const path = await deps.saveFile({
+        title: '导出祈愿记录备份',
+        defaultPath: backupFileName(uid, new Date()),
+        filters: [{ name: 'JSON 备份', extensions: ['json'] }],
+      })
+      if (path === null) return
+      // 剥离存储层字段(seq/rowid 不入备份,spec 01 §6 records 为 WishRecord 全字段)
+      const rows = records.value.map(({ gachaType, time, name, rankType, id }) => ({
+        gachaType,
+        time,
+        name,
+        rankType,
+        id,
+      }))
+      const backup = buildBackupFile(rows, uid, new Date().toISOString())
+      await deps.writeTextFile(path, JSON.stringify(backup))
+      message.value = {
+        kind: 'success',
+        text: `已导出 ${backup.records.length} 条祈愿记录到 ${path}`,
+      }
+    } catch (error) {
+      message.value = { kind: 'error', text: `导出备份失败:${errorText(error)}` }
+    } finally {
+      backupPending.value = false
+    }
+  }
+
+  /**
+   * 导入备份(PRD F4 / spec 01 §6):选文件 → 读文本(64MB 真实大小门禁在 Rust)→
+   * parseBackup 逐层校验 → 对目标档案(backup.uid)算合并预览,挂起等确认后才落库。
+   * 校验/读取失败直接进 message(解析拒绝文案来自 backup.ts,UI 直用)。
+   */
+  async function importBackupFile(): Promise<void> {
+    if (busy.value) return // 与拉取/Excel 管线互斥;预览按当前库态计算,不接受并发写
+    backupPending.value = true
+    try {
+      const path = await deps.pickFile(BACKUP_FILE_PICK)
+      if (path === null) return
+      const text = await deps.readTextFile(path)
+      const backup = parseBackup(text, BACKUP_MAX_BYTES)
+      // 预览对「目标档案」的既有行:当前档案用内存,非当前档案读库(缺失档案返回空)
+      const targetRecords =
+        backup.uid === currentUid.value
+          ? records.value
+          : await deps.storage.loadRecords(backup.uid)
+      pendingBackupImport.value = {
+        targetUid: backup.uid,
+        isCurrent: backup.uid === currentUid.value,
+        result: mergeBackupInto(targetRecords, backup),
+      }
+    } catch (error) {
+      message.value = { kind: 'error', text: `导入备份失败:${errorText(error)}` }
+    } finally {
+      backupPending.value = false
+    }
+  }
+
+  /** 确认导入:ensureArchive(目标档案可能不存在)→ 新增行 + 身份回填落库,再刷新展示 */
+  async function confirmBackupImport(): Promise<void> {
+    const pending = pendingBackupImport.value
+    pendingBackupImport.value = null
+    if (pending === null || busy.value) return
+    backupPending.value = true
+    try {
+      const { targetUid, isCurrent, result } = pending
+      await deps.storage.ensureArchive(targetUid)
+      if (result.added.length > 0) await deps.storage.insertRecords(targetUid, result.added)
+      if (result.upgrades.length > 0) await deps.storage.updateIdentity(result.upgrades)
+      try {
+        archives.value = await deps.storage.listArchives()
+        if (isCurrent) records.value = await deps.storage.loadRecords(targetUid)
+      } catch (error) {
+        // 导入本身已完成,展示刷新失败降级为非阻断提示
+        message.value = {
+          kind: 'error',
+          text: `导入已完成,但刷新档案展示失败:${errorText(error)}`,
+        }
+        return
+      }
+      message.value = {
+        kind: 'success',
+        text:
+          `导入完成:新增 ${result.summary.added} 条、回填 ${result.summary.upgraded} 条、` +
+          `跳过 ${result.summary.skipped} 条。` +
+          (isCurrent ? '' : `记录已并入 UID ${targetUid},可在「档案管理」中切换查看。`),
+      }
+    } catch (error) {
+      message.value = { kind: 'error', text: `导入备份失败:${errorText(error)}` }
+      // 部分写入可能已发生(insertRecords 已批式落库),尽力刷新让已写入数据可见
+      try {
+        archives.value = await deps.storage.listArchives()
+      } catch {
+        // 忽略:原始错误优先呈现
+      }
+    } finally {
+      backupPending.value = false
+    }
+  }
+
+  /** 取消导入:零写入(预览阶段未落任何库) */
+  function cancelBackupImport(): void {
+    pendingBackupImport.value = null
+  }
+
+  function askClearArchive(): void {
+    if (currentUid.value === null || backupPending.value) return
+    pendingClear.value = true
+  }
+
+  function cancelClearArchive(): void {
+    pendingClear.value = false
+  }
+
+  /**
+   * 确认清空当前档案(F4):db_clear_archive 同事务清除记录+水位+last_synced_at,
+   * 档案行保留;当前档案留在原地置为空档(保守不自动切换)。
+   */
+  async function confirmClearArchive(): Promise<void> {
+    const uid = currentUid.value
+    if (!pendingClear.value || uid === null || busy.value) return
+    pendingClear.value = false
+    backupPending.value = true
+    try {
+      const removed = await deps.storage.clearArchive(uid)
+      records.value = []
+      try {
+        archives.value = await deps.storage.listArchives()
+      } catch {
+        // 列表刷新失败不掩盖清空结果
+      }
+      message.value = {
+        kind: 'success',
+        text: `已清空 UID ${uid} 的 ${removed} 条祈愿记录与同步水位,档案保留。`,
+      }
+    } catch (error) {
+      message.value = { kind: 'error', text: `清空数据失败:${errorText(error)}` }
+    } finally {
+      backupPending.value = false
+    }
+  }
+
   return {
     // 档案状态
     archives,
@@ -714,6 +976,13 @@ export const useAppStore = defineStore('app', () => {
     excelPreview,
     excelError,
     excelResult,
+    // 设置面板/备份/清空(T18)
+    settingsOpen,
+    dirProbe,
+    manualGameDir,
+    backupPending,
+    pendingBackupImport,
+    pendingClear,
     // 动作
     init,
     loadRecords,
@@ -736,5 +1005,16 @@ export const useAppStore = defineStore('app', () => {
     cancelExcelImport,
     closeExcel,
     startupAutoSync,
+    openSettings,
+    closeSettings,
+    refreshGameDirs,
+    chooseGameDirManually,
+    exportBackupFile,
+    importBackupFile,
+    confirmBackupImport,
+    cancelBackupImport,
+    askClearArchive,
+    cancelClearArchive,
+    confirmClearArchive,
   }
 })

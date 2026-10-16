@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useAppStore } from '@/stores/app'
 import { useThemeStore } from '@/stores/theme'
+import SettingsPanel from '@/components/settings/SettingsPanel.vue'
 
 /** 粘贴/Excel 弹窗开关由 App 持有(空态也要能呼出);文件导入与一键获取在 store 内闭环 */
 const emit = defineEmits<{ 'open-paste': []; 'open-excel': [] }>()
@@ -134,16 +135,16 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick))
     >
       {{ theme.theme === 'dark' ? '昼版' : '夜仪' }}
     </button>
-    <!-- 设置占位(档案/备份/启动同步等属 T18) -->
+    <!-- 设置(T18):档案/备份/启动同步/目录/清空/关于,面板为右侧抽屉 -->
     <button
       type="button"
       class="tbtn"
-      disabled
-      title="设置(开发中)"
+      @click="store.openSettings()"
     >
       设置
     </button>
   </header>
+  <SettingsPanel />
 </template>
 
 <style scoped>
