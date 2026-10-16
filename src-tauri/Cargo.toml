@@ -22,8 +22,16 @@ tauri = { version = "2", features = [] }
 # rustls-tls:避免 OpenSSL 依赖(Rust 面最小化、跨平台构建友好)
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
 rusqlite = { version = "0.32", features = ["bundled"] }
+# Excel 迁入解包(spec 03 §2 / ADR-0004):纯 Rust xlsx 读取,Rust 只解包不识语义
+calamine = "0.36"
 # 手动指定游戏目录的系统文件夹选择器
 tauri-plugin-dialog = "2"
+
+# zip 全历史版本(9.0.3/9.0.4 除外)已被 crates.io 整体 yanked,calamine 0.36 声明的
+# zip ^8.6 已无法从 registry 全新解析;此处 patch 到 zip2 官方仓库 v8.6.0 发布 commit
+# (与被 yanked 的 8.6.0 同源代码,rev 完整 sha 锁定),calamine 升级到接受 zip ^9 后移除本节
+[patch.crates-io]
+zip = { git = "https://github.com/zip-rs/zip2", rev = "771dfc534d2614158af5497ea3dff4d4208d7db1" }
 
 [target.'cfg(windows)'.dependencies]
 # Windows 专属探测源:注册表 Uninstall / MuiCache / 防火墙规则(客户端定位,winprobe.rs)

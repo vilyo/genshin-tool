@@ -1,4 +1,5 @@
 mod db;
+mod excel;
 mod gacha;
 mod probe;
 
@@ -18,6 +19,7 @@ pub fn run() {
             db::db_list_archives,
             db::db_ensure_archive,
             gacha::gacha_get,
+            excel::extract_xlsx,
             probe::list_game_dirs,
             probe::webcache_candidates,
             probe::copy_to_temp,
