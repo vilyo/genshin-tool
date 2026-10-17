@@ -134,6 +134,20 @@ function onSelectScope(scope: PoolCategory): void {
   overflow-y: auto;
 }
 
+.history-start {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 26px 0;
+  color: var(--mut);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.history-start input {
+  accent-color: var(--accent);
+}
+
 .left-toolbar {
   flex: none;
   display: flex;
@@ -183,6 +197,8 @@ function onSelectScope(scope: PoolCategory): void {
   overflow-y: auto;
   display: flex;
   flex-direction: column;
+  /* 尺寸容器:高度由外层 flex 定死,供评语区 cqh 伸缩(窄窗降级改 inline-size) */
+  container-type: size;
 }
 
 /* 窄窗单列降级(DESIGN §10:容器查询,非视口断点) */
@@ -201,6 +217,8 @@ function onSelectScope(scope: PoolCategory): void {
     border-left: none;
     border-top: 1px solid var(--line);
     overflow: visible;
+    /* 高度回归内容驱动,size 容器会让高度塌陷,降级为 inline-size */
+    container-type: inline-size;
   }
 }
 </style>

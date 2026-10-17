@@ -101,54 +101,58 @@ const tiles = computed(() => [
       <span class="vp-en">VERDICT</span>
     </header>
 
-    <!-- 评级星盘:外环 + conic-gradient 刻度带 + 北斗星位 + Italiana 评级字母 -->
-    <div
-      class="dial"
-      role="img"
-      :aria-label="`评级 ${dialLetter}`"
-    >
-      <i
-        class="dial-ticks"
-        aria-hidden="true"
-      />
-      <i
-        v-for="index in 7"
-        :key="`star-${index}`"
-        class="dial-star"
-        :style="{ left: `${[63, 74, 69, 58, 45, 32, 16][index - 1]}%`, top: `${[18, 30, 47, 54, 55, 59, 65][index - 1]}%` }"
-      />
-      <span class="dial-letter">{{ dialLetter }}</span>
-    </div>
-
-    <div class="verdict-line">
-      <div class="v1">
-        {{ verdictLine }}
-      </div>
+    <!-- 评级簇(垂直弹性区):窗口变高时星盘随之放大(104→176 上限)并整体居中,
+         多余高度被此区吸收,指标瓦片与高光锚在栏底,不出现底部大片留白 -->
+    <div class="vp-center">
+      <!-- 评级星盘:外环 + conic-gradient 刻度带 + 北斗星位 + Italiana 评级字母 -->
       <div
-        class="v2"
-        :title="caliberTitle"
+        class="dial"
+        role="img"
+        :aria-label="`评级 ${dialLetter}`"
       >
-        {{ caliberLine }}
+        <i
+          class="dial-ticks"
+          aria-hidden="true"
+        />
+        <i
+          v-for="index in 7"
+          :key="`star-${index}`"
+          class="dial-star"
+          :style="{ left: `${[63, 74, 69, 58, 45, 32, 16][index - 1]}%`, top: `${[18, 30, 47, 54, 55, 59, 65][index - 1]}%` }"
+        />
+        <span class="dial-letter">{{ dialLetter }}</span>
       </div>
-    </div>
 
-    <div
-      v-if="verdict.correction !== null"
-      class="vp-badges"
-    >
-      <span class="vp-badge warn">{{ verdict.correction }}</span>
-    </div>
+      <div class="verdict-line">
+        <div class="v1">
+          {{ verdictLine }}
+        </div>
+        <div
+          class="v2"
+          :title="caliberTitle"
+        >
+          {{ caliberLine }}
+        </div>
+      </div>
 
-    <!-- 名单过期提示(T17 返工:池级旗标已收窄为常驻池名单外五星,触发即有实义;降为提示行不占徽章位) -->
-    <p
-      v-if="verdict.rosterStale"
-      class="vp-stale"
-    >
-      <span
-        class="mark"
-        aria-hidden="true"
-      >◆</span>检测到常驻池出现名单外五星,{{ ROSTER_STALE_HINT }}
-    </p>
+      <div
+        v-if="verdict.correction !== null"
+        class="vp-badges"
+      >
+        <span class="vp-badge warn">{{ verdict.correction }}</span>
+      </div>
+
+      <!-- 名单过期提示(T17 返工:池级旗标已收窄为常驻池名单外五星,触发即有实义;降为提示行不占徽章位) -->
+      <p
+        v-if="verdict.rosterStale"
+        class="vp-stale"
+      >
+        <span
+          class="mark"
+          aria-hidden="true"
+        >◆</span>检测到常驻池出现名单外五星,{{ ROSTER_STALE_HINT }}
+      </p>
+    </div>
 
     <div class="vp-tiles">
       <div
@@ -169,7 +173,10 @@ const tiles = computed(() => [
 
 <style scoped>
 .verdict-panel {
-  flex: none;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
   padding: 0 24px;
 }
 
@@ -196,12 +203,21 @@ const tiles = computed(() => [
   color: var(--dim);
 }
 
-/* —— 评级星盘(纯 CSS:环形 + conic-gradient 刻度 + 星位 + 字母;112px 一屏化)—— */
+/* —— 评级簇(弹性区):吸收右栏多余高度,星盘随之放大并整体垂直居中 —— */
+.vp-center {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* —— 评级星盘(纯 CSS:环形 + conic-gradient 刻度 + 星位 + 字母);
+   宽高同 clamp 随右栏容器高伸缩(22cqh;纵 flex 里 width:auto 会被拉伸,禁用) —— */
 .dial {
   position: relative;
-  width: 104px;
-  height: 104px;
-  margin: 12px auto 0;
+  width: clamp(104px, 22cqh, 176px);
+  height: clamp(104px, 22cqh, 176px);
+  margin: 0 auto;
   border-radius: 50%;
   border: 1px solid var(--line);
 }
@@ -234,13 +250,13 @@ const tiles = computed(() => [
   align-items: center;
   justify-content: center;
   font-family: var(--font-num);
-  font-size: 44px;
+  font-size: clamp(44px, 9.5cqh, 64px);
   color: var(--accent);
 }
 
 .verdict-line {
   text-align: center;
-  margin-top: 6px;
+  margin-top: 8px;
 }
 
 .v1 {
@@ -259,7 +275,7 @@ const tiles = computed(() => [
 
 /* —— 歪率修正徽章(独有信息保留;彩蛋/就绪态由高光主卡与保底仪承载) —— */
 .vp-badges {
-  margin-top: 6px;
+  margin-top: 8px;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -330,5 +346,17 @@ const tiles = computed(() => [
   font-size: 10.5px;
   color: var(--dim);
   margin-left: 4px;
+}
+
+/* 窄窗单列降级:右栏不再是尺寸容器(cqh 失义),星盘钉回固定尺寸 */
+@container board (max-width: 1150px) {
+  .dial {
+    width: 104px;
+    height: 104px;
+  }
+
+  .dial-letter {
+    font-size: 44px;
+  }
 }
 </style>
