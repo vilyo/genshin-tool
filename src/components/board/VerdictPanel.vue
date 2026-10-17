@@ -2,22 +2,20 @@
 import { computed } from 'vue'
 import type { PoolStats } from '@/domain/stats'
 import {
-  degreeOf,
   EVENT_CHAR_EXPECTED,
   EVENT_WEAPON_EXPECTED,
-  GUARANTEED_BADGE,
   ROSTER_STALE_HINT,
-  type Degree,
   type VerdictView,
 } from '@/domain/verdict'
-import { DEGREE_META, percentText } from './boardDisplay'
+import { percentText } from './boardDisplay'
 
 /**
- * 评语区 VerdictPanel(右栏 · 欧非总账上部):评级星盘(conic-gradient 刻度环 +
- * Italiana 评级字母,jsdom 无 canvas 故纯 CSS)+ 评级/评语行 + 口径行(期望参考线
- * 62.5/53.25 旁注口径)+ 档位印签四枚(fives 完整五星按 degreeOf 计数)+ 修正/彩蛋/
- * 大保底就绪徽章 + 名单过期提示行(池级旗标收窄为常驻池名单外五星,T17 返工)+
- * 捕获明光固定脚注(仅 eventChar)+ 指标瓦片。
+ * 评语区 VerdictPanel(右栏 · 欧非总账上部,2026-10-17 一屏化精简):评级星盘
+ * (conic-gradient 刻度环 + Italiana 评级字母,jsdom 无 canvas 故纯 CSS)+ 评级/评语行
+ * + 口径行(期望参考线 62.5/53.25 旁注口径;明光说明降级为行 title 悬停)+
+ * 歪率修正徽章 + 名单过期提示行(池级旗标收窄为常驻池名单外五星,T17 返工)+ 指标瓦片。
+ * 档位印签/彩蛋徽章/大保底徽章已删——档位分布由时间线头部徽章与量距条档色编码,
+ * 彩蛋与就绪态由高光主卡/保底仪状态章承载,右栏不重复。
  * 全部输入为 computePoolStats/applyVerdict 产物,组件零口径。
  */
 const props = defineProps<{
@@ -44,18 +42,6 @@ const expected = computed<{ value: number; note: string } | null>(() => {
   }
 })
 
-/** 档位印签四枚:完整五星按 degreeOf 计数(不完整五星的 pulls 是占位下界,不参与) */
-const stamps = computed<Record<Degree, number>>(() => {
-  const counts: Record<Degree, number> = { superLucky: 0, lucky: 0, normal: 0, unlucky: 0 }
-  for (const five of props.stats.fives) {
-    if (five.incomplete) continue
-    counts[degreeOf(five.pulls, props.stats.scope)] += 1
-  }
-  return counts
-})
-
-const DEGREES: Degree[] = ['superLucky', 'lucky', 'normal', 'unlucky']
-
 function averageText(value: number | null): string {
   return value === null ? '—' : String(Number(value.toFixed(1)))
 }
@@ -67,16 +53,25 @@ const verdictLine = computed(() =>
     : `评级 ${dialLetter.value} · ${props.verdict.comment}`,
 )
 
-/** 口径行:平均出货(/出 UP 仅 eventChar)/期望参考线(旁注口径来源) */
+/** 口径行:平均出货/出 UP(仅 eventChar;期望参考线与明光说明入行 title 悬停) */
 const caliberLine = computed(() => {
   const parts = [`平均出货 ${averageText(props.verdict.avgPulls)}`]
   if (props.stats.scope === 'eventChar') {
     parts.push(`出 UP ${averageText(props.stats.avgUpPulls)}`)
   }
-  if (expected.value !== null) {
-    parts.push(`期望参考 ${expected.value.value}(${expected.value.note})`)
-  }
   return parts.join(' · ')
+})
+
+/** 口径行悬停 title:期望参考线(含口径来源)+ 明光说明(仅 eventChar) */
+const caliberTitle = computed(() => {
+  const lines: string[] = []
+  if (expected.value !== null) {
+    lines.push(`期望参考 ${expected.value.value}(${expected.value.note})`)
+  }
+  if (props.stats.scope === 'eventChar') {
+    lines.push(props.verdict.footnote)
+  }
+  return lines.length > 0 ? lines.join('\n') : undefined
 })
 
 /** 指标瓦片:总祈愿/五星/平均出货/歪率(歪率仅 eventChar 有值) */
@@ -129,43 +124,19 @@ const tiles = computed(() => [
       <div class="v1">
         {{ verdictLine }}
       </div>
-      <div class="v2">
+      <div
+        class="v2"
+        :title="caliberTitle"
+      >
         {{ caliberLine }}
       </div>
     </div>
 
-    <div class="stamps">
-      <span
-        v-for="degree in DEGREES"
-        :key="degree"
-        class="stamp"
-        :class="DEGREE_META[degree].cls"
-      ><i
-        class="d"
-        aria-hidden="true"
-      />{{ DEGREE_META[degree].label }} ×{{ stamps[degree] }}</span>
-    </div>
-
     <div
-      v-if="
-        verdict.correction !== null ||
-          verdict.easterEgg !== null ||
-          verdict.guaranteed
-      "
+      v-if="verdict.correction !== null"
       class="vp-badges"
     >
-      <span
-        v-if="verdict.correction !== null"
-        class="vp-badge warn"
-      >{{ verdict.correction }}</span>
-      <span
-        v-if="verdict.easterEgg !== null"
-        class="vp-badge egg"
-      >出手如电 · {{ verdict.easterEgg.name }} {{ verdict.easterEgg.pulls }} 抽({{ verdict.easterEgg.date }})</span>
-      <span
-        v-if="verdict.guaranteed"
-        class="vp-badge jade"
-      >{{ GUARANTEED_BADGE }}</span>
+      <span class="vp-badge warn">{{ verdict.correction }}</span>
     </div>
 
     <!-- 名单过期提示(T17 返工:池级旗标已收窄为常驻池名单外五星,触发即有实义;降为提示行不占徽章位) -->
@@ -177,13 +148,6 @@ const tiles = computed(() => [
         class="mark"
         aria-hidden="true"
       >◆</span>检测到常驻池出现名单外五星,{{ ROSTER_STALE_HINT }}
-    </p>
-
-    <p
-      v-if="stats.scope === 'eventChar'"
-      class="vp-footnote"
-    >
-      {{ verdict.footnote }}
     </p>
 
     <div class="vp-tiles">
@@ -210,7 +174,7 @@ const tiles = computed(() => [
 }
 
 .vp-head {
-  height: 52px;
+  height: 40px;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -232,23 +196,23 @@ const tiles = computed(() => [
   color: var(--dim);
 }
 
-/* —— 评级星盘(纯 CSS:环形 + conic-gradient 刻度 + 星位 + 字母)—— */
+/* —— 评级星盘(纯 CSS:环形 + conic-gradient 刻度 + 星位 + 字母;112px 一屏化)—— */
 .dial {
   position: relative;
-  width: 172px;
-  height: 172px;
-  margin: 26px auto 0;
+  width: 104px;
+  height: 104px;
+  margin: 12px auto 0;
   border-radius: 50%;
   border: 1px solid var(--line);
 }
 
 .dial-ticks {
   position: absolute;
-  inset: 5px;
+  inset: 4px;
   border-radius: 50%;
   background: repeating-conic-gradient(var(--accent-2) 0deg 0.8deg, transparent 0.8deg 5deg);
-  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 11px), #000 calc(100% - 10px));
-  mask: radial-gradient(farthest-side, transparent calc(100% - 11px), #000 calc(100% - 10px));
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 7px), #000 calc(100% - 6px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 7px), #000 calc(100% - 6px));
   opacity: 0.4;
 }
 
@@ -270,13 +234,13 @@ const tiles = computed(() => [
   align-items: center;
   justify-content: center;
   font-family: var(--font-num);
-  font-size: 64px;
+  font-size: 44px;
   color: var(--accent);
 }
 
 .verdict-line {
   text-align: center;
-  margin-top: 18px;
+  margin-top: 6px;
 }
 
 .v1 {
@@ -286,70 +250,16 @@ const tiles = computed(() => [
 }
 
 .v2 {
-  margin-top: 8px;
+  margin-top: 4px;
   font-family: var(--font-mono);
   font-size: 11.5px;
   color: var(--mut);
   letter-spacing: 0.03em;
 }
 
-/* —— 档位印签 —— */
-.stamps {
-  margin-top: 16px;
-  display: flex;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.stamp {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  height: 28px;
-  padding: 0 12px;
-  border-radius: 8px;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  border: 1px solid var(--st-bd);
-  background: var(--st-bg);
-}
-
-.stamp .d {
-  width: 6px;
-  height: 6px;
-  transform: rotate(45deg);
-  background: currentColor;
-}
-
-.stamp.deg-super-lucky {
-  color: var(--zone-super-lucky);
-  --st-bd: var(--rare-edge-super-lucky);
-  --st-bg: var(--rare-bg-super-lucky);
-}
-
-.stamp.deg-lucky {
-  color: var(--zone-lucky);
-  --st-bd: var(--seal-inner);
-  --st-bg: var(--seal-bg);
-}
-
-.stamp.deg-normal {
-  color: var(--zone-normal);
-  --st-bd: var(--line);
-  --st-bg: var(--meter-seg-2);
-}
-
-.stamp.deg-unlucky {
-  color: var(--zone-unlucky);
-  --st-bd: var(--rare-edge-unlucky);
-  --st-bg: var(--rare-bg-unlucky);
-}
-
-/* —— 修正/彩蛋/就绪/名单过期徽章 —— */
+/* —— 歪率修正徽章(独有信息保留;彩蛋/就绪态由高光主卡与保底仪承载) —— */
 .vp-badges {
-  margin-top: 14px;
+  margin-top: 6px;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -359,7 +269,7 @@ const tiles = computed(() => [
   font-size: 11.5px;
   letter-spacing: 0.05em;
   border-radius: 7px;
-  padding: 5px 10px;
+  padding: 4px 10px;
   text-align: center;
 }
 
@@ -367,18 +277,6 @@ const tiles = computed(() => [
   color: var(--cinnabar);
   border: 1px solid var(--cinnabar);
   background: transparent;
-}
-
-.vp-badge.egg {
-  color: var(--spring);
-  border: 1px solid var(--line);
-  background: var(--seal-bg);
-}
-
-.vp-badge.jade {
-  color: var(--jade);
-  border: 1px solid var(--jade-bd);
-  background: var(--jade-bg);
 }
 
 /* 名单过期提示行(T17 返工:降为细字提示,保留可见性) */
@@ -396,54 +294,41 @@ const tiles = computed(() => [
   margin-right: 4px;
 }
 
-.vp-footnote {
-  margin: 10px 0 0;
-  text-align: center;
-  font-size: 10.5px;
-  color: var(--dim);
-  letter-spacing: 0.04em;
-}
-
-/* —— 指标瓦片 2×2 —— */
+/* —— 指标瓦片:单行四格(2026-10-17 一屏化,2×2 改横排) —— */
 .vp-tiles {
-  margin-top: 16px;
+  margin-top: 10px;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(4, 1fr);
   border-top: 1px solid var(--line);
 }
 
 .tile {
-  padding: 12px 4px 10px 2px;
+  padding: 7px 4px 6px 8px;
   border-bottom: 1px solid var(--line);
 }
 
-.tile:nth-child(odd) {
-  border-right: 1px solid var(--line);
-  padding-left: 0;
-}
-
-.tile:nth-child(even) {
-  padding-left: 18px;
+.tile + .tile {
+  border-left: 1px solid var(--line);
 }
 
 .tile-k {
-  font-size: 11.5px;
+  font-size: 10.5px;
   color: var(--mut);
-  letter-spacing: 0.1em;
+  letter-spacing: 0.08em;
 }
 
 .tile-v {
-  margin-top: 5px;
+  margin-top: 4px;
   font-family: var(--font-num);
-  font-size: 30px;
+  font-size: 22px;
   line-height: 1;
   color: var(--fg);
 }
 
 .tile-v small {
   font-family: var(--font-cjk);
-  font-size: 11px;
+  font-size: 10.5px;
   color: var(--dim);
-  margin-left: 6px;
+  margin-left: 4px;
 }
 </style>

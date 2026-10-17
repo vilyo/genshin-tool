@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { guaranteedReadyText, type HighlightsView } from '@/domain/highlights'
+import type { HighlightsView } from '@/domain/highlights'
 import { avatarFor } from './boardDisplay'
 
 /**
- * 高光时刻 2×2(spec 04 §6):旅途总览 / 出手如电 / 漫长等待 / 大保底就绪。
- * 数据全部来自 buildHighlights 产物;大保底就绪 null 时显空态文案。
- * 出手如电卡带头像章(ADR-0005 内置图标菱形镶嵌,未知名回退首字占位章)。
+ * 高光时刻(右栏 · 欧非总账下部,2026-10-17 一屏化精简):
+ * 出手如电主卡(ADR-0005 头像章——内置图标整像圆环呈现、未知名回退菱形首字段)
+ * + 旅途一行带(总抽数/五星数/覆盖天数/触底次数)。
+ * 原四卡中的旅途总览/漫长等待并入一行带;大保底就绪与保底仪状态章重复,不再出卡
+ * (highlights.guaranteed 字段保留在视图模型,UI 不消费)。数据全部来自 buildHighlights
+ * 产物,fastest 为 null(四作用域均无完整五星)时主卡显空态文案。
  */
 const props = defineProps<{ highlights: HighlightsView }>()
 
@@ -24,26 +27,13 @@ const fastestAvatar = computed(() => {
   >
     <div class="hl-card">
       <div class="hl-k">
-        旅途总览
-      </div>
-      <div class="hl-v">
-        {{ highlights.journey.totalPulls }}<small>抽</small>
-      </div>
-      <div class="hl-s">
-        五星 {{ highlights.journey.fiveStars }} 颗 · 覆盖 {{ highlights.journey.days }} 天<template v-if="highlights.journey.since !== null"> · 自 {{ highlights.journey.since }}</template>
-      </div>
-    </div>
-    <div class="hl-card">
-      <div class="hl-k">
         出手如电
       </div>
       <template v-if="highlights.fastest !== null">
-        <div class="hl-v">
-          {{ highlights.fastest.pulls }}<small>抽</small>
-        </div>
-        <div class="hl-s">
+        <div class="hl-main">
           <span
             class="hl-seal"
+            :class="{ icon: fastestAvatar?.kind === 'icon' }"
             aria-hidden="true"
           >
             <img
@@ -53,7 +43,12 @@ const fastestAvatar = computed(() => {
               alt=""
             >
             <span v-else>{{ fastestAvatar?.char }}</span>
-          </span>{{ highlights.fastest.name }} · {{ highlights.fastest.date }} · {{ highlights.fastest.pool }}<template v-if="highlights.fastest.outcome !== null"> · {{ highlights.fastest.outcome }}</template>
+          </span>
+          <span class="hl-name">{{ highlights.fastest.name }}</span>
+          <span class="hl-pulls">{{ highlights.fastest.pulls }}<small>抽</small></span>
+        </div>
+        <div class="hl-sub">
+          {{ highlights.fastest.date }} · {{ highlights.fastest.pool }}<template v-if="highlights.fastest.outcome !== null"> · {{ highlights.fastest.outcome }}</template>
         </div>
       </template>
       <div
@@ -63,57 +58,23 @@ const fastestAvatar = computed(() => {
         暂无完整五星出货
       </div>
     </div>
-    <div class="hl-card">
-      <div class="hl-k">
-        漫长等待
-      </div>
-      <div class="hl-v">
-        {{ highlights.touchBottoms }}<small>次触底</small>
-      </div>
-      <div class="hl-s">
-        一单吃满硬保底的次数
-      </div>
-    </div>
-    <div
-      class="hl-card"
-      :class="{ ready: highlights.guaranteed !== null }"
-    >
-      <div class="hl-k">
-        大保底就绪
-      </div>
-      <template v-if="highlights.guaranteed !== null">
-        <div class="hl-v">
-          {{ highlights.guaranteed.current }}<small>抽垫</small>
-        </div>
-        <div class="hl-s">
-          {{ highlights.guaranteed.pool }} · {{ guaranteedReadyText(highlights.guaranteed.remaining) }}
-        </div>
-      </template>
-      <div
-        v-else
-        class="hl-empty"
-      >
-        当前未处于大保底就绪状态
-      </div>
-    </div>
+    <p class="hl-journey">
+      旅途 {{ highlights.journey.totalPulls }} 抽 · 五星 {{ highlights.journey.fiveStars }} · 覆盖 {{ highlights.journey.days }} 天 · 触底 {{ highlights.touchBottoms }} 次
+    </p>
   </section>
 </template>
 
 <style scoped>
 .highlights {
   flex: none;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  padding: 16px 24px;
+  padding: 9px 24px 11px;
 }
 
 .hl-card {
   border: 1px solid var(--line-soft);
   border-radius: 10px;
   background: var(--seal-bg);
-  padding: 12px 14px;
-  min-height: 96px;
+  padding: 9px 14px 10px;
 }
 
 .hl-k {
@@ -122,88 +83,102 @@ const fastestAvatar = computed(() => {
   letter-spacing: 0.1em;
 }
 
-.hl-v {
+.hl-main {
   margin-top: 6px;
-  font-family: var(--font-num);
-  font-size: 34px;
-  line-height: 1;
-  color: var(--fg);
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
-.hl-v small {
-  font-family: var(--font-cjk);
-  font-size: 11px;
-  color: var(--dim);
-  margin-left: 6px;
-}
-
-.hl-s {
-  margin-top: 7px;
-  font-size: 11px;
-  line-height: 1.7;
-  color: var(--dim);
-  letter-spacing: 0.03em;
-}
-
-/* 出手如电头像章(V5 菱章语法缩小版,单描边) */
+/* 出手如电头像章(占位为菱形、图标为环;img 显定宽高,替换元素 inset 不缩放) */
 .hl-seal {
   position: relative;
-  display: inline-block;
-  width: 20px;
-  height: 20px;
-  margin-right: 8px;
-  vertical-align: -6px;
+  width: 26px;
+  height: 26px;
+  flex: none;
 }
 
 .hl-seal::before {
   content: '';
   position: absolute;
   inset: 0;
-  border: 1px solid var(--accent-deep);
-  border-radius: 3px;
+  border: 1.2px solid var(--accent-deep);
+  border-radius: 4px;
   transform: rotate(45deg);
   background: var(--seal-bg);
 }
 
-/* 占位形态:首字居中(与时间线/名册章同款,字号随 20px 章缩小) */
+.hl-seal.icon::before {
+  transform: none;
+  border-radius: 50%;
+}
+
 .hl-seal > span {
   position: absolute;
   inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 500;
   color: var(--accent);
 }
 
-/* 图标形态(ADR-0005):立像按菱形裁切镶嵌在描边之内,底色/描边沿用 */
 .hl-seal .seal-img {
   position: absolute;
-  inset: 3px;
-  object-fit: cover;
-  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+  left: 50%;
+  top: 50%;
+  width: 21px;
+  height: 21px;
+  transform: translate(-50%, -50%);
+  object-fit: contain;
+}
+
+.hl-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--accent);
+  letter-spacing: 0.05em;
+}
+
+.hl-pulls {
+  margin-left: auto;
+  font-family: var(--font-num);
+  font-size: 26px;
+  line-height: 1;
+  color: var(--fg);
+}
+
+.hl-pulls small {
+  font-family: var(--font-cjk);
+  font-size: 11px;
+  color: var(--dim);
+  margin-left: 4px;
+}
+
+.hl-sub {
+  margin-top: 4px;
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--dim);
+  letter-spacing: 0.03em;
 }
 
 .hl-empty {
-  margin-top: 14px;
+  margin-top: 10px;
   font-size: 11.5px;
   color: var(--dim);
   letter-spacing: 0.05em;
 }
 
-/* 大保底就绪出牌:翠玉洗色(V5 ready 语) */
-.hl-card.ready {
-  border-color: var(--jade-bd);
-  background: var(--jade-bg);
-}
-
-.hl-card.ready .hl-v {
-  color: var(--jade);
-}
-
-.hl-card.ready .hl-k,
-.hl-card.ready .hl-s {
-  color: var(--jade);
+/* 旅途一行带:收编原旅途总览/漫长等待两卡(全局口径,mono 小字) */
+.hl-journey {
+  margin: 7px 0 0;
+  padding-top: 6px;
+  border-top: 1px solid var(--line-soft);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--dim);
+  letter-spacing: 0.04em;
 }
 </style>

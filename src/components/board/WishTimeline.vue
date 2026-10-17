@@ -6,7 +6,8 @@ import type { TimelineRow } from '@/stores/board'
 
 /**
  * 祈愿时间线(V5.1 量距条语法,左栏主列表):一行一次五星出货,新的在前。
- * 行 = 头像章(ADR-0005 内置图标按 V5 菱形镶嵌,未知名回退首字占位章)+ 物品名(C/R 标签随名)+ 日期与池名 + 量距条(条长 = pulls/硬保底
+ * 行 = 头像章(ADR-0005 内置图标整像圆形呈现、环框镶嵌,未知名回退首字菱形占位章)
+ * + 物品名(C/R 标签随名)+ 日期与池名 + 量距条(条长 = pulls/硬保底
  * 归一化、条色 = degreeOf 四档、背景轨四段分段与界线刻度、菱形游标)+ 右侧结果区
  * (档位词/抽数/抽/歪章)——结果区按 grid 固定列模板对齐(档位词右缘、数字个位、
  * 单位、结果章四列垂直轨,DESIGN §3)。抽数与档色只来自 stats.fives × degreeOf。
@@ -96,6 +97,7 @@ function meterLabel(row: TimelineRow): string {
       >
         <span
           class="wish-seal"
+          :class="{ icon: avatar.kind === 'icon' }"
           aria-hidden="true"
         >
           <img
@@ -241,7 +243,7 @@ function meterLabel(row: TimelineRow): string {
 /* 对齐轨:章 | 名 | 量距条 | 档位词右缘 | 数字个位 | 单位 | 结果章(DESIGN §3) */
 .wish-row {
   display: grid;
-  grid-template-columns: 44px minmax(140px, 1.1fr) minmax(170px, 1.8fr) 58px 52px 20px 58px;
+  grid-template-columns: 54px minmax(140px, 1.1fr) minmax(170px, 1.8fr) 58px 52px 20px 58px;
   align-items: center;
   column-gap: 14px;
   min-height: 64px;
@@ -265,8 +267,8 @@ function meterLabel(row: TimelineRow): string {
 
 .wish-seal {
   position: relative;
-  width: 38px;
-  height: 38px;
+  width: 48px;
+  height: 48px;
   margin-left: 6px;
 }
 
@@ -300,12 +302,25 @@ function meterLabel(row: TimelineRow): string {
   color: var(--accent);
 }
 
-/* 图标形态(ADR-0005):立像按菱形裁切镶嵌在内描边之内,底色/双描边沿用 */
+/* 图标形态(ADR-0005):整像圆形呈现——外框改环、去内菱形线,不用菱形裁切头像 */
+.wish-seal.icon::before {
+  transform: none;
+  border-radius: 50%;
+}
+
+.wish-seal.icon::after {
+  display: none;
+}
+
+/* img 须显定宽高居中:<img> 是替换元素,inset 不缩放固有尺寸(256 原图溢出即此因) */
 .wish-seal .seal-img {
   position: absolute;
-  inset: 6px;
-  object-fit: cover;
-  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+  left: 50%;
+  top: 50%;
+  width: 42px;
+  height: 42px;
+  transform: translate(-50%, -50%);
+  object-fit: contain;
 }
 
 .wish-name {

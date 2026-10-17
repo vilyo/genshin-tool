@@ -7,7 +7,7 @@ import { avatarFor, acquireTag } from './boardDisplay'
 
 /**
  * 五星名册(左栏补充视图,spec 04 §4):按物品分组的卡片——头像章(ADR-0005 内置图标
- * 菱形镶嵌,未知名回退首字占位章)+ 名 + 获取列表
+ * 整像圆形呈现、环框镶嵌,未知名回退首字菱形占位章)+ 名 + 获取列表
  * (新的在前:拉数/歪章/日期/池名),顶部汇总芯片(UP n · 歪 n · 超欧 n · 超非 n),
  * 尾注 ROSTER_CONSTELLATION_NOTE。数据全部来自 buildRoster 产物;C/R 标注经
  * acquireTag(scope, …) 选型(constellationOf/refinementOf 换算),组件零口径。
@@ -60,6 +60,7 @@ const cards = computed(() =>
         <header class="card-head">
           <span
             class="card-seal"
+            :class="{ icon: avatar.kind === 'icon' }"
             aria-hidden="true"
           >
             <img
@@ -192,8 +193,8 @@ const cards = computed(() =>
 
 .card-seal {
   position: relative;
-  width: 26px;
-  height: 26px;
+  width: 32px;
+  height: 32px;
   flex: none;
 }
 
@@ -218,12 +219,21 @@ const cards = computed(() =>
   color: var(--accent);
 }
 
-/* 图标形态(ADR-0005):立像按菱形裁切镶嵌在描边之内,底色/描边沿用 */
+/* 图标形态(ADR-0005):整像圆形呈现——外框改环,不用菱形裁切头像 */
+.card-seal.icon::before {
+  transform: none;
+  border-radius: 50%;
+}
+
+/* img 须显定宽高居中:<img> 是替换元素,inset 不缩放固有尺寸 */
 .card-seal .seal-img {
   position: absolute;
-  inset: 3px;
-  object-fit: cover;
-  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+  left: 50%;
+  top: 50%;
+  width: 26px;
+  height: 26px;
+  transform: translate(-50%, -50%);
+  object-fit: contain;
 }
 
 .card-name {

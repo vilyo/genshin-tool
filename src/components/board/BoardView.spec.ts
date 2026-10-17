@@ -109,39 +109,40 @@ describe('BoardView · 页签/保底仪/时间线/评语/高光/状态栏', () =
     expect(badges).toContain('超非 2')
   })
 
-  it('评语区:修正后评级 B+ + 降档文案 + 修正徽章 + 印签 + 口径行 + 明光脚注', () => {
+  it('评语区:修正后评级 B+ + 降档文案 + 修正徽章 + 口径行(title 明光提示)+ 指标瓦片', () => {
     const { wrapper } = mountBoard()
     expect(wrapper.find('.dial-letter').text()).toBe('B+')
     expect(wrapper.find('.v1').text()).toContain('评级 B+')
     expect(wrapper.find('.v1').text()).toContain('不疾不徐')
     expect(wrapper.find('.v2').text()).toContain('平均出货 50')
-    expect(wrapper.find('.v2').text()).toContain('期望参考 62.5(官方综合概率倒数)')
-    const stamps = wrapper.findAll('.stamp').map((stamp) => stamp.text())
-    expect(stamps).toEqual(['超欧 ×1', '欧 ×1', '正常 ×0', '超非 ×2'])
+    expect(wrapper.find('.v2').text()).toContain('出 UP 8')
+    // 期望参考线与明光说明降级为口径行悬停 title(2026-10-17 一屏化精简,原脚注删除)
+    expect(wrapper.find('.v2').attributes('title')).toContain('期望参考 62.5(官方综合概率倒数)')
+    expect(wrapper.find('.v2').attributes('title')).toContain('捕获明光')
     expect(wrapper.find('.vp-badge.warn').text()).toBe('歪率 60%,评级降半档')
-    expect(wrapper.find('.vp-badge.egg').text()).toContain('雷电将军 8 抽')
-    expect(wrapper.find('.vp-badge.jade').text()).toContain('大保底就绪')
-    expect(wrapper.find('.vp-footnote').text()).toContain('捕获明光')
-    // 指标瓦片:总祈愿 231 / 五星 5 / 平均出货 50 / 歪率 60
+    expect(wrapper.findAll('.stamp')).toHaveLength(0)
+    expect(wrapper.find('.vp-footnote').exists()).toBe(false)
+    // 指标瓦片(单行四格):总祈愿 231 / 五星 5 / 平均出货 50 / 歪率 60
     const tiles = wrapper.findAll('.tile').map((tile) => tile.text())
+    expect(tiles).toHaveLength(4)
     expect(tiles[0]).toContain('231')
     expect(tiles[1]).toContain('5')
     expect(tiles[2]).toContain('50')
     expect(tiles[3]).toContain('60')
   })
 
-  it('高光时刻 2×2:旅途总览 342 抽 / 出手如电 8 抽 / 触底 1 / 大保底就绪 60 抽内必中 UP', () => {
+  it('高光时刻:出手如电主卡 + 旅途一行带;重复的大保底就绪卡不再出(保底仪承载)', () => {
     const { wrapper } = mountBoard()
     const cards = wrapper.findAll('.hl-card')
-    expect(cards).toHaveLength(4)
-    expect(cards[0]!.text()).toContain('旅途总览')
-    expect(cards[0]!.text()).toContain('342')
-    expect(cards[1]!.text()).toContain('雷电将军')
-    expect(cards[1]!.text()).toContain('UP')
-    expect(cards[2]!.text()).toContain('1')
-    expect(cards[3]!.text()).toContain('60 抽内必中 UP')
-    expect(cards[3]!.text()).toContain('角色活动祈愿')
-    expect(cards[3]!.classes()).toContain('ready')
+    expect(cards).toHaveLength(1)
+    expect(cards[0]!.text()).toContain('出手如电')
+    expect(cards[0]!.text()).toContain('雷电将军')
+    expect(cards[0]!.text()).toContain('8')
+    expect(cards[0]!.text()).toContain('UP')
+    const journey = wrapper.find('.hl-journey').text()
+    expect(journey).toContain('342')
+    expect(journey).toContain('触底 1')
+    expect(wrapper.text()).not.toContain('必中 UP')
   })
 
   it('状态栏:全本地徽章 + 记录数(含 novice)/覆盖起点/最近同步', () => {
