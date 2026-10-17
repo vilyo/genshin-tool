@@ -3,7 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useAppStore } from '@/stores/app'
 import { useThemeStore } from '@/stores/theme'
 import SettingsPanel from '@/components/settings/SettingsPanel.vue'
-import appIcon from '@/assets/app-icon.png'
+import appMark from '@/assets/app-mark.png'
 
 /** 粘贴/Excel 弹窗开关由 App 持有(空态也要能呼出);文件导入与一键获取在 store 内闭环 */
 const emit = defineEmits<{ 'open-paste': []; 'open-excel': [] }>()
@@ -64,7 +64,7 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick))
     >
       <img
         class="brand-mark"
-        :src="appIcon"
+        :src="appMark"
         alt=""
         draggable="false"
         data-tauri-drag-region
