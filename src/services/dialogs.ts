@@ -5,7 +5,8 @@
 
 export interface FilePickSpec {
   title: string
-  filters: { name: string; extensions: string[] }[]
+  /** 省略 = 不过滤;macOS 面板不认 "*" 通配扩展名,传了反而全灰 */
+  filters?: { name: string; extensions: string[] }[]
 }
 
 /** Excel 历史迁入(PRD F1.5:v1 仅 xlsx) */
@@ -14,10 +15,10 @@ export const XLSX_PICK: FilePickSpec = {
   filters: [{ name: 'Excel 工作簿', extensions: ['xlsx'] }],
 }
 
-/** 链接文件导入(PRD F1.3 兜底:老日志/云原神日志/手动拷出的 data_2) */
+/** 链接文件导入(PRD F1.3 兜底:老日志/云原神日志/手动拷出的 data_2);
+ *  不带过滤器——目标文件可能是无扩展名的 data_2,任何扩展名白名单都会挡住它 */
 export const LINK_FILE_PICK: FilePickSpec = {
   title: '选择含祈愿链接的文件',
-  filters: [{ name: '全部文件', extensions: ['*'] }],
 }
 
 /** 备份导入(PRD F4:自有 JSON 格式 genshintool-backup-*.json) */
@@ -51,7 +52,7 @@ export async function pickFile(spec: FilePickSpec): Promise<string | null> {
     title: spec.title,
     multiple: false,
     directory: false,
-    filters: spec.filters,
+    filters: spec.filters?.length ? spec.filters : undefined,
   })
   return typeof selected === 'string' ? selected : null
 }
