@@ -2,10 +2,7 @@
  * 统计引擎(spec 04 §3 D1–D8):作用域解析、五星序列、保底、大小保底、比率与均值。
  * 全部纯函数、零框架依赖;记录模型与比较器见 records.ts,歪判定见 standardRoster.ts。
  *
- * 与鸣潮参考实现(wuwa stats.ts)结构同构,两处口径差异按本 spec 勿照抄:
- * - incomplete(spec D2):本项目「作用域内首个五星恒不完整」——档案起点几乎总落在
- *   保底周期中间(接口保留期截断/Excel 未必从第一抽记起),首个五星的 pulls 是不可知
- *   下界;鸣潮是 i===0 窄口径,方向相反。
+ * 与鸣潮参考实现(wuwa stats.ts)结构同构,一处口径差异按本 spec 勿照抄:
  * - 四星保底(spec D1):「10 抽必出四星或以上」,遇四星**或五星都清零**;
  *   鸣潮同款只数四星属常见错法,测试钉住(H5)。
  */
@@ -23,8 +20,6 @@ export interface FiveStarPull {
   record: WishRecord
   /** 出货抽数(含出货那一抽):自作用域内上一五星(或作用域起点)累计 */
   pulls: number
-  /** 作用域内首个五星恒 true:更早历史不可见,pulls 是不可知下界(spec D2) */
-  incomplete: boolean
   /** ADR-0003 反向歪判定;仅 eventChar 有值,其他作用域恒 null(spec §3) */
   off: true | false | null
   /** 名单可能过期旗标(ADR-0003 §4 兜底路径触发;仅 eventChar 可能出现) */
@@ -50,11 +45,11 @@ export interface PoolStats {
   totalPulls: number
   /** 五星出货列表,时间正序 */
   fives: FiveStarPull[]
-  /** 平均出货(含出货那抽):仅完整五星(D3);无完整五星 null */
+  /** 平均出货(含出货那抽):全部五星(D3);无五星 null */
   avgPulls: number | null
   /** 平均出 UP(歪+随后必中合并为一组,D4):仅 eventChar;无有效组 null */
   avgUpPulls: number | null
-  /** 歪率 0–1(D6):仅 eventChar;分母为 off≠null 的五星(含不完整五星,D2);分母 0 → null */
+  /** 歪率 0–1(D6):仅 eventChar;分母为 off≠null 的五星;分母 0 → null */
   offRate: number | null
   /**
    * 五星保底进度(D7);current 超 hard 属数据异常,照实显示不钳制。
@@ -84,10 +79,9 @@ export function scopeRecords(records: readonly WishRecord[], scope: PoolCategory
   return records.filter((record) => poolCategory(record.gachaType) === scope).sort(compareRecords)
 }
 
-/** UP 成本组(D4):歪开组、UP 闭组;组内任一成员 incomplete 则整组排除出均值 */
+/** UP 成本组(D4):歪开组、UP 闭组 */
 interface UpPullGroup {
   pulls: number
-  incomplete: boolean
 }
 
 /**
@@ -109,10 +103,7 @@ function upPullGroups(fives: readonly FiveStarPull[]): UpPullGroup[] {
       continue
     }
     const members = pending ? [pending, five] : [five]
-    groups.push({
-      pulls: members.reduce((sum, member) => sum + member.pulls, 0),
-      incomplete: members.some((member) => member.incomplete),
-    })
+    groups.push({ pulls: members.reduce((sum, member) => sum + member.pulls, 0) })
     pending = null
   }
   return groups
@@ -138,8 +129,6 @@ export function computePoolStats(scope: PoolCategory, records: readonly WishReco
       fives.push({
         record,
         pulls: sinceLastFive,
-        // D2:作用域内首个五星恒不完整(无论它是否作用域首条)
-        incomplete: fives.length === 0,
         off: verdict ? verdict.off : null,
         // 条目级保持 ADR-0003 §4 字面语义:名单查无即置,不再向上汇入池级
         ...(verdict?.rosterStale ? { rosterStale: true as const } : {}),
@@ -167,12 +156,9 @@ export function computePoolStats(scope: PoolCategory, records: readonly WishReco
     }
   }
 
-  // D4:UP 分组仅 eventChar;组内任一成员 incomplete → 整组排除出均值
-  const validGroups =
-    scope === 'eventChar' ? upPullGroups(fives).filter((group) => !group.incomplete) : []
-  // D3:仅完整五星参与平均出货
-  const complete = fives.filter((five) => !five.incomplete)
-  // D6:歪率分母 = off≠null 的五星(含不完整五星,判定与抽数无关)
+  // D4:UP 分组仅 eventChar
+  const validGroups = scope === 'eventChar' ? upPullGroups(fives) : []
+  // D6:歪率分母 = off≠null 的五星(判定与抽数无关)
   const eligible = fives.filter((five) => five.off !== null)
   const last = fives[fives.length - 1]
 
@@ -182,8 +168,8 @@ export function computePoolStats(scope: PoolCategory, records: readonly WishReco
     totalPulls: asc.length,
     fives,
     avgPulls:
-      complete.length > 0
-        ? complete.reduce((sum, five) => sum + five.pulls, 0) / complete.length
+      fives.length > 0
+        ? fives.reduce((sum, five) => sum + five.pulls, 0) / fives.length
         : null,
     avgUpPulls:
       validGroups.length > 0

@@ -32,10 +32,8 @@ export const ROSTER_CONSTELLATION_NOTE = '仅按祈愿记录累计,与游戏内�
 
 /** 卡片内单次获取条目(spec §4) */
 export interface Acquisition {
-  /** 出货抽数(含出货那一抽);incomplete 时为占位下界,UI 显「—」(spec D2) */
+  /** 出货抽数(含出货那一抽) */
   pulls: number
-  /** 作用域内首个五星恒 true:更早历史不可见(spec D2) */
-  incomplete: boolean
   /** 歪/不歪章数据源:仅 eventChar 有值,其余作用域恒 null、UI 不显示(spec §2) */
   off: true | false | null
   /** 出货日期(time 串前 10 字符,服务器时区口径,不转换) */
@@ -60,7 +58,7 @@ export interface RosterSummary {
   up: number | null
   /** 歪数(off===true,含不完整五星,与 D6 歪率分母同口径):仅 eventChar,其余 null */
   off: number | null
-  /** 超欧数:完整五星按 degreeOf 分档(不完整五星 pulls 是占位下界,不参与) */
+  /** 超欧数:五星按 degreeOf 分档 */
   superLucky: number
   /** 超非数:同上 */
   unlucky: number
@@ -94,7 +92,7 @@ function globalIndexes(records: readonly WishRecord[]): Map<WishRecord, number> 
  * 五星名册视图(spec §4):作用域五星来自 computePoolStats(scope, records),
  * globalIndex 按全档案 records 跨池计数——故入参必须是全档案,不能预过滤。
  * 卡片分组按时间倒序扫五星、首见建卡(卡片序 = 各物品最新一次获取的时间倒序);
- * 芯片由 stats + verdict 派生(up/off 数 off 非 null 的五星,超欧/超非数完整五星)。
+ * 芯片由 stats + verdict 派生(up/off 数 off 非 null 的五星,超欧/超非数全部五星)。
  */
 export function buildRoster(scope: PoolCategory, records: readonly WishRecord[]): RosterView {
   const stats = computePoolStats(scope, records)
@@ -112,7 +110,6 @@ export function buildRoster(scope: PoolCategory, records: readonly WishRecord[])
     }
     card.acquisitions.push({
       pulls: five.pulls,
-      incomplete: five.incomplete,
       off: five.off,
       date: five.record.time.slice(0, 10),
       pool: poolLabel(five.record.gachaType),
@@ -120,12 +117,11 @@ export function buildRoster(scope: PoolCategory, records: readonly WishRecord[])
     })
   }
 
-  const complete = stats.fives.filter((five) => !five.incomplete)
   const summary: RosterSummary = {
     up: scope === 'eventChar' ? stats.fives.filter((five) => five.off === false).length : null,
     off: scope === 'eventChar' ? stats.fives.filter((five) => five.off === true).length : null,
-    superLucky: complete.filter((five) => degreeOf(five.pulls, scope) === 'superLucky').length,
-    unlucky: complete.filter((five) => degreeOf(five.pulls, scope) === 'unlucky').length,
+    superLucky: stats.fives.filter((five) => degreeOf(five.pulls, scope) === 'superLucky').length,
+    unlucky: stats.fives.filter((five) => degreeOf(five.pulls, scope) === 'unlucky').length,
   }
   return { scope, cards, summary }
 }

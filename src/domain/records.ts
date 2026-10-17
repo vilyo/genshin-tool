@@ -28,31 +28,25 @@ export interface StoredRecord extends WishRecord {
 }
 
 /**
- * 全库统一时序比较器(spec 01 §2),返回 -1|0|1,依序:
- * time 字符串升序 → id 空值在前 → id 均存在按 BigInt 升序(19 位超 Number 精度,
- * 禁用 Number 比较)→ seq 升序 → 仍相等返回 0,交由稳定排序保持输入序。
- * incoming 侧的 WishRecord 无 seq,seq 参与的分支视其为相等。
+ * time 升序 → 无 id 行在前 → API id 数值升序 → 导入行 rowid 升序。
+ * seq 仅为同物品重复份数,不能作为同秒十连的顺序。未落库记录保持输入顺序。
  */
 export function compareRecords(
-  a: WishRecord & { seq?: number },
-  b: WishRecord & { seq?: number },
+  a: WishRecord & { seq?: number; rowid?: number },
+  b: WishRecord & { seq?: number; rowid?: number },
 ): -1 | 0 | 1 {
   if (a.time !== b.time) return a.time < b.time ? -1 : 1
   if (a.id === null || b.id === null) {
-    // 空值在前;双双无 id 落到 seq(纯迁入区以导入份数序兜底)
-    if (a.id === null && b.id === null) return compareSeq(a, b)
-    return a.id === null ? -1 : 1
+    if (a.id !== b.id) return a.id === null ? -1 : 1
+  } else {
+    const idA = BigInt(a.id)
+    const idB = BigInt(b.id)
+    if (idA !== idB) return idA < idB ? -1 : 1
   }
-  const idA = BigInt(a.id)
-  const idB = BigInt(b.id)
-  if (idA !== idB) return idA < idB ? -1 : 1
-  return compareSeq(a, b)
-}
-
-/** seq 升序兜底;任一侧无 seq 视为相等,由稳定排序保持输入序 */
-function compareSeq(a: { seq?: number }, b: { seq?: number }): -1 | 0 | 1 {
-  if (a.seq === undefined || b.seq === undefined || a.seq === b.seq) return 0
-  return a.seq < b.seq ? -1 : 1
+  if (a.rowid !== undefined && b.rowid !== undefined && a.rowid !== b.rowid) {
+    return a.rowid < b.rowid ? -1 : 1
+  }
+  return 0
 }
 
 /** 身份回填项:既有无 id 行 rowid → 接口权威 id(类别内 code 错标时一并纠偏) */

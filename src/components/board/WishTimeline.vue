@@ -31,18 +31,17 @@ const decoratedRows = computed(() =>
 const countByDegree = computed(() => {
   const counts = { superLucky: 0, unlucky: 0 }
   for (const row of props.rows) {
-    if (row.five.incomplete) continue
     if (row.degree === 'superLucky') counts.superLucky += 1
     if (row.degree === 'unlucky') counts.unlucky += 1
   }
   return counts
 })
 
-/** 超欧/超非 = 稀有行(独立洗色 token,双主题等权);不完整行不洗色(pulls 是占位下界) */
+/** 超欧/超非 = 稀有行(独立洗色 token,双主题等权) */
 function rowClass(row: TimelineRow): string[] {
   const classes: string[] = []
-  if (!row.five.incomplete && row.degree === 'superLucky') classes.push('rare', 'rare-super-lucky')
-  if (!row.five.incomplete && row.degree === 'unlucky') classes.push('rare', 'rare-unlucky')
+  if (row.degree === 'superLucky') classes.push('rare', 'rare-super-lucky')
+  if (row.degree === 'unlucky') classes.push('rare', 'rare-unlucky')
   return classes
 }
 
@@ -65,7 +64,7 @@ const minorTicks = computed(() => {
 })
 
 function meterLabel(row: TimelineRow): string {
-  return `出货 ${row.five.incomplete ? '—' : row.five.pulls} 抽 · ${DEGREE_META[row.degree].label}`
+  return `出货 ${row.five.pulls} 抽 · ${DEGREE_META[row.degree].label}`
 }
 </script>
 
@@ -121,7 +120,6 @@ function meterLabel(row: TimelineRow): string {
         </div>
         <div
           class="meter"
-          :class="{ incomplete: row.five.incomplete }"
           role="img"
           :aria-label="meterLabel(row)"
         >
@@ -159,7 +157,7 @@ function meterLabel(row: TimelineRow): string {
           class="wish-degree"
           :class="DEGREE_META[row.degree].cls"
         >{{ DEGREE_META[row.degree].label }}</span>
-        <span class="wish-q">{{ row.five.incomplete ? '—' : row.five.pulls }}</span>
+        <span class="wish-q">{{ row.five.pulls }}</span>
         <span class="wish-qu">抽</span>
         <span
           v-if="row.five.off !== null"
@@ -357,10 +355,6 @@ function meterLabel(row: TimelineRow): string {
 .meter {
   position: relative;
   height: 30px;
-}
-
-.meter.incomplete {
-  opacity: 0.45;
 }
 
 .meter-seg {

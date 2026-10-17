@@ -38,7 +38,10 @@ export function exportBackup(
     version: BACKUP_FORMAT_VERSION,
     uid,
     exportedAt: nowIso,
-    records: [...records].map((row) => ({ ...row })).sort(compareRecords),
+    // 先使用存储顺序排序,再剥离 rowid/seq;数组顺序承载无 id 十连的抽序。
+    records: [...records].sort(compareRecords).map(({ gachaType, time, name, rankType, id }) => ({
+      gachaType, time, name, rankType, id,
+    })),
   }
 }
 

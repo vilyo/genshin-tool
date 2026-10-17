@@ -6,10 +6,8 @@
  * - 旅途总览是**四作用域全局**(eventChar+eventWeapon+standard+chronicled):
  *   novice 不计入欧非总评与全局汇总、unknown 无统计口径(spec §0 #6/§2),均排除;
  *   鸣潮是全档案口径。
- * - 漫长等待 = **触底硬保底次数**:完整五星中 pulls ≥ 该作用域硬保底(90/80)的
+ * - 漫长等待 = **触底硬保底次数**:五星中 pulls ≥ 该作用域硬保底(90/80)的
  *   个数(DESIGN §5 定义),不是鸣潮的「最长单次」。
- * - 不完整五星(spec D2:作用域内首个五星恒 incomplete,pulls 是占位下界)不参与
- *   出手如电/漫长等待——假的下界会伪造「超欧」。
  * - 状态栏的最近同步时间是档案元数据,由 UI 从 StoragePort 取,domain 不管。
  */
 import { poolCategory, poolLabel, type PoolCategory } from './pools'
@@ -29,7 +27,7 @@ export interface JourneySummary {
   since: string | null
 }
 
-/** 出手如电纪念牌:全局最快完整五星(并列取比较器序更晚的一次) */
+/** 出手如电纪念牌:全局最快五星(并列取比较器序更晚的一次) */
 export interface FastestFiveCard {
   /** 五星名 */
   name: string
@@ -61,9 +59,9 @@ export function guaranteedReadyText(remaining: number): string {
 /** 高光时刻 2×2 视图(spec §6):旅途总览 + 出手如电 + 漫长等待 + 大保底就绪 */
 export interface HighlightsView {
   journey: JourneySummary
-  /** 出手如电:全局最快完整五星;四作用域均无完整五星时 null */
+  /** 出手如电:全局最快五星;四作用域均无五星时 null */
   fastest: FastestFiveCard | null
-  /** 漫长等待:触底硬保底次数(完整五星,pulls ≥ 90/80 按池) */
+  /** 漫长等待:触底硬保底次数(五星,pulls ≥ 90/80 按池) */
   touchBottoms: number
   /** 大保底就绪:仅 eventChar 且 guarantee=guaranteed 时出牌,其余 null */
   guaranteed: GuaranteedCard | null
@@ -117,7 +115,7 @@ function coverageDays(earliest: string, latest: string): number {
 
 /**
  * 高光时刻四卡 + 全局旅途总览(spec §6):入参全档案,内部先滤出四作用域全局数据集。
- * 出手如电候选 = 四作用域完整五星,按比较器升序扫描、并列(≤)使更晚者胜出;
+ * 出手如电候选 = 四作用域全部五星,按比较器升序扫描、并列(≤)使更晚者胜出;
  * 漫长等待按各作用域 PoolStats.pity.hard(90/80)分池计数。
  */
 export function buildHighlights(records: readonly WishRecord[]): HighlightsView {
@@ -138,8 +136,8 @@ export function buildHighlights(records: readonly WishRecord[]): HighlightsView 
   const chronicledStats = computePoolStats('chronicled', records)
   const stats = [charStats, weaponStats, standardStats, chronicledStats]
 
-  // 出手如电:完整五星为候选(不完整的 pulls 是占位下界,D2);并列取比较器序更晚者
-  const candidates = stats.flatMap((poolStats) => poolStats.fives).filter((five) => !five.incomplete)
+  // 出手如电:全部五星为候选;并列取比较器序更晚者
+  const candidates = stats.flatMap((poolStats) => poolStats.fives)
   candidates.sort((a, b) => compareRecords(a.record, b.record))
   let fastestFive: FiveStarPull | null = null
   for (const five of candidates) {
@@ -155,14 +153,11 @@ export function buildHighlights(records: readonly WishRecord[]): HighlightsView 
       }
     : null
 
-  // 漫长等待:完整五星 pulls ≥ 该作用域硬保底(90/80);无保底口径的作用域不计
+  // 漫长等待:五星 pulls ≥ 该作用域硬保底(90/80);无保底口径的作用域不计
   const touchBottoms = stats.reduce((count, poolStats) => {
     const hard = poolStats.pity?.hard
     if (hard === undefined) return count
-    return (
-      count +
-      poolStats.fives.filter((five) => !five.incomplete && five.pulls >= hard).length
-    )
+    return count + poolStats.fives.filter((five) => five.pulls >= hard).length
   }, 0)
 
   // 大保底就绪:仅 eventChar guarantee=guaranteed 时出牌(D5;其余作用域恒 null)

@@ -812,15 +812,8 @@ export const useAppStore = defineStore('app', () => {
         filters: [{ name: 'JSON 备份', extensions: ['json'] }],
       })
       if (path === null) return
-      // 剥离存储层字段(seq/rowid 不入备份,spec 01 §6 records 为 WishRecord 全字段)
-      const rows = records.value.map(({ gachaType, time, name, rankType, id }) => ({
-        gachaType,
-        time,
-        name,
-        rankType,
-        id,
-      }))
-      const backup = buildBackupFile(rows, uid, new Date().toISOString())
+      // 备份函数先按完整记录排序,再剥离存储字段,保留同秒十连抽序。
+      const backup = buildBackupFile(records.value, uid, new Date().toISOString())
       await deps.writeTextFile(path, JSON.stringify(backup))
       message.value = {
         kind: 'success',

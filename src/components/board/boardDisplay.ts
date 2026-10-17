@@ -91,9 +91,8 @@ export function timelineKey(
   date: string,
   pool: string,
   pulls: number,
-  incomplete: boolean,
 ): string {
-  return `${name}|${date}|${pool}|${pulls}|${incomplete ? 1 : 0}`
+  return `${name}|${date}|${pool}|${pulls}`
 }
 
 /** 名册视图 → 「联查键 → C/R 标注」索引(时间线标注不重算跨池序) */
@@ -102,7 +101,7 @@ export function buildTagIndex(scope: PoolCategory, roster: RosterView): Map<stri
   for (const card of roster.cards) {
     for (const acquisition of card.acquisitions) {
       index.set(
-        timelineKey(card.name, acquisition.date, acquisition.pool, acquisition.pulls, acquisition.incomplete),
+        timelineKey(card.name, acquisition.date, acquisition.pool, acquisition.pulls),
         acquireTag(scope, card.name, acquisition.globalIndex),
       )
     }

@@ -83,7 +83,7 @@ export const useBoardStore = defineStore('board', () => {
 
   /**
    * 时间线行(新的在前):五星序列 + 程度档(degreeOf 单一来源)+ C/R 标注——
-   * 标注不重算跨池序,以名册视图(roster.ts 产物)按「名|日期|池|抽数|不完整」联查。
+   * 标注不重算跨池序,以名册视图(roster.ts 产物)按「名|日期|池|抽数」联查。
    */
   const timelineRows = computed<TimelineRow[]>(() => {
     const tagByKey = buildTagIndex(scope.value, roster.value)
@@ -93,7 +93,6 @@ export const useBoardStore = defineStore('board', () => {
         five.record.time.slice(0, 10),
         poolLabel(five.record.gachaType),
         five.pulls,
-        five.incomplete,
       )
       return { five, degree: degreeOf(five.pulls, scope.value), tag: tagByKey.get(key) ?? null }
     })

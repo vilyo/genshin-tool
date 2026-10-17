@@ -31,15 +31,15 @@ function fillers(gachaType: number, from: number, n: number): WishRecord[] {
  * 恒判 UP、「刻晴」等 1.0 名单成员恒判歪,判定无 stale 噪音);分池顺序生成。
  *
  * 目标数值(钉死):
- * - eventChar 合并 301/400:总 2118 抽 / 五星 19;歪率 5/19 ≈ 26.3%(首个不完整
- *   边界五星「刻晴」判歪并计入分母,D2/D6);平均出货 840/18 ≈ 46.7(边界五星排除);
+ * - eventChar 合并 301/400:总 2118 抽 / 五星 19;歪率 5/19 ≈ 26.3%(首个边界五星
+ *   「刻晴」判歪并计入分母,D6);平均出货 885/19 ≈ 46.6(全部五星,2026-10-18 裁决);
  * - 武器 302:528 抽 / 7 金;常驻 200:994 抽 / 7 金;集录 500:176 抽 / 1 金;
  * - 全局四作用域合计 3816 抽 / 34 金(DESIGN §6「全局 3816/34」按同构规则另建);
  * - novice 100:20 抽(限抽上限)/ 1 金;unknown 1000:3 抽 / 1 金(不入全局)。
  *
  * 布点说明:各池五星 pulls 覆盖不了全部抽数,余量落在各池末尾垫刀区(eventChar
  * 1233 抽),属合成数据的「有洞」形态——pity.current 照实显示不钳制(spec D7),
- * 不在断言范围;集录唯一金即不完整五星,借它钉「不完整不参与触底/最快」(D2)。
+ * 不在断言范围。
  */
 interface DemoFixture {
   records: WishRecord[]
@@ -75,8 +75,8 @@ function demoFixture(): DemoFixture {
   let fiveIndex = 0
   const fiveCode = (): number => (fiveIndex++ % 2 === 0 ? 301 : 400)
   fill(301, 44)
-  push(fiveCode(), '刻晴', 5) // 五星①:45 抽,不完整,判歪(边界五星,计入歪率分母)
-  // 完整 18 金 pulls 序列:40×13 + 45 + 90×3 + 5 = 840;歪 4(莫娜/琴/七七触底 + 迪卢克)、UP 14
+  push(fiveCode(), '刻晴', 5) // 五星①:45 抽,判歪(边界五星,照常参与全部统计)
+  // 后续 18 金 pulls 序列:40×13 + 45 + 90×3 + 5 = 840;歪 4(莫娜/琴/七七触底 + 迪卢克)、UP 14
   const completePlan: ReadonlyArray<{ pulls: number; name: string }> = [
     { pulls: 40, name: '提纳里' }, // UP
     { pulls: 40, name: '提纳里' }, // UP
@@ -106,27 +106,27 @@ function demoFixture(): DemoFixture {
   fill(301, 1233) // 末尾垫刀:总数补到 44 + 1 + 840 + 1233 = 2118
   const firstTime = records[0]?.time ?? ''
 
-  // —— 武器 302:528 抽 / 7 金(首个不完整;80/81 触底 ×2)——
+  // —— 武器 302:528 抽 / 7 金(80/81 触底 ×2)——
   fill(302, 29)
-  push(302, '四风原典', 5) // 30 抽,不完整
+  push(302, '四风原典', 5) // 30 抽
   for (const pulls of [55, 62, 80, 47, 81, 70]) {
     fill(302, pulls - 1)
     push(302, '五星武器', 5)
   }
   fill(302, 103) // 29 + 1 + 395 + 103 = 528
 
-  // —— 常驻 200:994 抽 / 7 金(首个不完整;91 触底 ×1)——
+  // —— 常驻 200:994 抽 / 7 金(91 触底 ×1)——
   fill(200, 59)
-  push(200, '常驻五星', 5) // 60 抽,不完整
+  push(200, '常驻五星', 5) // 60 抽
   for (const pulls of [75, 45, 88, 52, 91, 23]) {
     fill(200, pulls - 1)
     push(200, '常驻五星', 5)
   }
   fill(200, 560) // 59 + 1 + 374 + 560 = 994
 
-  // —— 集录 500:176 抽 / 1 金(唯一金即不完整 → 不参与触底/最快,D2)——
+  // —— 集录 500:176 抽 / 1 金 ——
   fill(500, 75)
-  push(500, '集录五星', 5) // 76 抽,不完整
+  push(500, '集录五星', 5) // 76 抽
   fill(500, 100) // 75 + 1 + 100 = 176
   const lastGlobalTime = records[records.length - 1]?.time ?? '' // 全局数据集到此为止
 
@@ -143,19 +143,19 @@ function demoFixture(): DemoFixture {
 describe('演示口径数值基准(spec 04 §6:computePoolStats 产出 DESIGN §6 修正口径)', () => {
   const fx = demoFixture()
 
-  it('合并角色池:总 2118 / 五星 19 / 歪率 5/19 / 平均出货 840/18 ≈ 46.7', () => {
+  it('合并角色池:总 2118 / 五星 19 / 歪率 5/19 / 平均出货 885/19 ≈ 46.6', () => {
     const stats = computePoolStats('eventChar', fx.records)
     expect(stats.totalPulls).toBe(2118)
     expect(stats.codes).toEqual([301, 400])
     expect(stats.fives).toHaveLength(19)
     expect(stats.fives.map((five) => five.record.name)).toEqual([
-      '刻晴', // ① 45 抽,不完整,判歪(D2:计入歪率分母)
+      '刻晴', // ① 45 抽,判歪(计入歪率分母与均值,2026-10-18 裁决)
       '提纳里', '提纳里', '莫娜', '提纳里', '提纳里', '琴', '提纳里', '提纳里', '提纳里',
       '七七', '提纳里', '提纳里', '迪卢克', '提纳里', '提纳里', '提纳里', '提纳里', '提纳里',
     ])
-    expect(stats.fives[0]).toMatchObject({ pulls: 45, incomplete: true, off: true })
+    expect(stats.fives[0]).toMatchObject({ pulls: 45, off: true })
     expect(stats.offRate).toBeCloseTo(5 / 19, 12) // ≈ 0.2632
-    expect(stats.avgPulls).toBeCloseTo(840 / 18, 12) // ≈ 46.7,仅完整 18 金
+    expect(stats.avgPulls).toBeCloseTo(885 / 19, 12) // ≈ 46.6,全部 19 金(45 + 840)
     expect(stats.guarantee).toBe('fiftyFifty') // 末金 UP(提纳里)
   })
 
@@ -179,7 +179,7 @@ describe('演示口径数值基准(spec 04 §6:computePoolStats 产出 DESIGN §
       pool: '角色活动祈愿-2', // 301/400 合并作用域内保留具体 code 名
       outcome: 'UP',
     })
-    // 角色 90 触底 ×3 + 武器 80/81 触底 ×2 + 常驻 91 触底 ×1;集录唯一金不完整不计(D2)
+    // 角色 90 触底 ×3 + 武器 80/81 触底 ×2 + 常驻 91 触底 ×1;各池首金均未触底
     expect(view.touchBottoms).toBe(6)
     expect(view.guaranteed).toBeNull()
   })
@@ -206,10 +206,10 @@ describe('演示口径数值基准(spec 04 §6:computePoolStats 产出 DESIGN §
   })
 })
 
-describe('H11 漫长等待:触底硬保底次数(90/80 按池,仅完整五星)', () => {
-  it('角色池:pulls=90 触底、89 不触底;不完整五星 pulls=90 也不计(D2)', () => {
+describe('H11 漫长等待:触底硬保底次数(90/80 按池)', () => {
+  it('角色池:pulls=90 触底、89 不触底;作用域首金同样参与触底计数', () => {
     const touched = [
-      rec(301, 0, '迪卢克', 5), // ① 不完整(不计)
+      rec(301, 0, '迪卢克', 5), // ① pulls=1
       ...fillers(301, 1, 89),
       rec(301, 90, '提纳里', 5), // ② pulls=90 → 触底
     ]
@@ -222,32 +222,30 @@ describe('H11 漫长等待:触底硬保底次数(90/80 按池,仅完整五星)',
     ]
     expect(buildHighlights(under).touchBottoms).toBe(0)
 
-    // 作用域首金即「90 抽」:占位下界不可信,不得伪造触底(D2)
-    const incompleteOnly = [...fillers(301, 0, 89), rec(301, 89, '迪卢克', 5)]
-    expect(buildHighlights(incompleteOnly).touchBottoms).toBe(0)
+    // 作用域唯一金即 90 抽:按档案数据如实计入触底(2026-10-18 裁决)
+    const singleTouch = [...fillers(301, 0, 89), rec(301, 89, '迪卢克', 5)]
+    expect(buildHighlights(singleTouch).touchBottoms).toBe(1)
   })
 
   it('武器池:硬保底 80,pulls=80 触底、79 不触底', () => {
     const touched = [
-      rec(302, 0, '四风原典', 5),
+      rec(302, 0, '四风原典', 5), // pulls=1(首金,同时成为全局最快)
       ...fillers(302, 1, 79),
       rec(302, 80, '护摩之杖', 5), // pulls=80 → 触底
     ]
     const view = buildHighlights(touched)
     expect(view.touchBottoms).toBe(1)
-    expect(view.fastest).toMatchObject({ pulls: 80, pool: '武器活动祈愿', outcome: null })
+    expect(view.fastest).toMatchObject({ name: '四风原典', pulls: 1, pool: '武器活动祈愿', outcome: null })
   })
 })
 
 describe('H11 出手如电:并列取更晚(比较器序更靠后)', () => {
   it('跨池并列 8 抽:时间更晚的常驻五星胜出,off=null → outcome null', () => {
     const records = [
-      rec(301, 0, '迪卢克', 5), // 角色 ① 不完整
-      ...fillers(301, 1, 7),
-      rec(301, 8, '提纳里', 5), // 角色 ② pulls=8 UP(早)
-      rec(200, 9, '莫娜', 5), // 常驻 ① 不完整
-      ...fillers(200, 10, 7),
-      rec(200, 17, '刻晴', 5), // 常驻 ② pulls=8(晚)→ 胜出
+      ...fillers(301, 0, 7),
+      rec(301, 7, '提纳里', 5), // 角色 ① pulls=8 UP(早)
+      ...fillers(200, 8, 7),
+      rec(200, 15, '刻晴', 5), // 常驻 ① pulls=8(晚)→ 胜出
     ]
     expect(buildHighlights(records).fastest).toEqual({
       name: '刻晴',
@@ -260,11 +258,10 @@ describe('H11 出手如电:并列取更晚(比较器序更靠后)', () => {
 
   it('同池并列 8 抽:更晚的一枚胜出,结局「歪」', () => {
     const records = [
-      rec(301, 0, '迪卢克', 5), // ① 不完整
-      ...fillers(301, 1, 7),
-      rec(301, 8, '提纳里', 5), // ② pulls=8 UP(早)
-      ...fillers(301, 9, 7),
-      rec(301, 16, '迪卢克', 5), // ③ pulls=8 歪(晚)→ 胜出
+      ...fillers(301, 0, 7),
+      rec(301, 7, '提纳里', 5), // ① pulls=8 UP(早)
+      ...fillers(301, 8, 7),
+      rec(301, 15, '迪卢克', 5), // ② pulls=8 歪(晚)→ 胜出
     ]
     expect(buildHighlights(records).fastest).toMatchObject({
       name: '迪卢克',
@@ -278,7 +275,7 @@ describe('H11 出手如电:并列取更晚(比较器序更靠后)', () => {
 describe('H11 大保底就绪牌字段(池名/垫抽数/剩余)', () => {
   it('guarantee=guaranteed 时出牌:pool=角色活动祈愿、current、hard − current', () => {
     const records = [
-      rec(301, 0, '迪卢克', 5), // ① 不完整,歪(开组未闭,不影响)
+      rec(301, 0, '迪卢克', 5), // ① pulls=1,歪(开组未闭,不影响 guarantee)
       ...fillers(301, 1, 2),
       rec(301, 3, '提纳里', 5), // ② pulls=3 UP
       ...fillers(301, 4, 25),

@@ -138,11 +138,11 @@ function offRatePercent(offRate: number): string {
   return (offRate * 100).toFixed(1).replace(/\.0$/, '')
 }
 
-/** 作用域内最快完整五星(不完整五星的 pulls 是占位下界不可信,D2;并列取更晚的) */
-function fastestCompleteFive(fives: readonly FiveStarPull[]): FiveStarPull | null {
+/** 作用域内最快五星(低抽数彩蛋候选;并列取更晚的) */
+function fastestFive(fives: readonly FiveStarPull[]): FiveStarPull | null {
   let best: FiveStarPull | null = null
   for (const five of fives) {
-    if (five.incomplete || five.pulls > EASTER_EGG_MAX_PULLS) continue
+    if (five.pulls > EASTER_EGG_MAX_PULLS) continue
     if (best === null || five.pulls <= best.pulls) best = five
   }
   return best
@@ -175,7 +175,7 @@ export function applyVerdict(stats: PoolStats): VerdictView {
     }
   }
 
-  const fastest = fastestCompleteFive(stats.fives)
+  const fastest = fastestFive(stats.fives)
   return {
     scope: stats.scope,
     rating,

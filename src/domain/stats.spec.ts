@@ -50,10 +50,10 @@ describe('H1 301/400 交错合并(DoD 用例)', () => {
     return [
       rec(301, 0, '三星武器', 3),
       rec(400, 1, '三星武器', 3),
-      rec(301, 2, '迪卢克', 5), // 五星① pulls=3,incomplete,歪
+      rec(301, 2, '迪卢克', 5), // 五星① pulls=3,歪
       rec(400, 3, '三星武器', 3),
       rec(301, 4, '三星武器', 3),
-      rec(400, 5, '提纳里', 5), // 五星② pulls=3,完整,UP(3.1 前)→ 闭组(含 incomplete 成员,排除)
+      rec(400, 5, '提纳里', 5), // 五星② pulls=3,UP(3.1 前)→ 闭组
       rec(301, 6, '三星武器', 3),
       rec(400, 7, '祭礼剑', 4),
       rec(301, 8, '三星武器', 3),
@@ -63,7 +63,7 @@ describe('H1 301/400 交错合并(DoD 用例)', () => {
       rec(301, 12, '三星武器', 3),
       rec(400, 13, '三星武器', 3),
       rec(301, 14, '三星武器', 3),
-      rec(301, 15, '刻晴', 5), // 五星③ pulls=10,完整,歪 → 开组未闭,丢弃
+      rec(301, 15, '刻晴', 5), // 五星③ pulls=10,歪 → 开组未闭,丢弃
     ]
   }
 
@@ -72,15 +72,15 @@ describe('H1 301/400 交错合并(DoD 用例)', () => {
     expect(stats.scope).toBe('eventChar')
     expect(stats.codes).toEqual([301, 400])
     expect(stats.totalPulls).toBe(16)
-    expect(stats.fives.map((f) => [f.record.gachaType, f.pulls, f.incomplete, f.off])).toEqual([
-      [301, 3, true, true],
-      [400, 3, false, false],
-      [301, 10, false, true],
+    expect(stats.fives.map((f) => [f.record.gachaType, f.pulls, f.off])).toEqual([
+      [301, 3, true],
+      [400, 3, false],
+      [301, 10, true],
     ])
-    // 完整五星:提纳里 3 + 刻晴 10 → 6.5(首个五星迪卢克 incomplete 不计入)
-    expect(stats.avgPulls).toBe(6.5)
-    // 唯一闭组含 incomplete 成员(迪卢克)→ 排除;刻晴开组未闭 → 丢弃
-    expect(stats.avgUpPulls).toBeNull()
+    // 全部五星:迪卢克 3 + 提纳里 3 + 刻晴 10 → 16/3
+    expect(stats.avgPulls).toBeCloseTo(16 / 3, 12)
+    // 迪卢克歪开组 + 提纳里闭组 = 6;刻晴开组未闭 → 丢弃
+    expect(stats.avgUpPulls).toBe(6)
     // 歪率:迪卢克 T + 提纳里 F + 刻晴 T → 2/3(首个五星计入分母)
     expect(stats.offRate).toBeCloseTo(2 / 3, 12)
     expect(stats.pity).toEqual({ current: 0, hard: 90, softFrom: 74 })
@@ -107,71 +107,69 @@ describe('H1 301/400 交错合并(DoD 用例)', () => {
   })
 })
 
-describe('H3 边界不完整(spec D2:首个五星恒 incomplete,与鸣潮 i===0 相反)', () => {
-  it('首条四星、首个五星在第 3 条:incomplete 恒真、不计均值、计入歪率分母', () => {
+describe('H3 首个五星边界(2026-10-18 裁决:首个五星按档案数据如实计入)', () => {
+  it('首条四星、首个五星在第 3 条:计入均值与 UP 组', () => {
     const records = [
       rec(301, 0, '四星武器', 4), // 首条四星(k>0 形态)
       rec(301, 1, '三星武器', 3),
-      rec(301, 2, '迪卢克', 5), // 五星① pulls=3,incomplete,歪
+      rec(301, 2, '迪卢克', 5), // 五星① pulls=3,歪
       ...fillers(301, 3, 5),
-      rec(301, 8, '提纳里', 5), // 五星② pulls=6,完整,UP → 闭组含 incomplete 成员
+      rec(301, 8, '提纳里', 5), // 五星② pulls=6,UP → 闭组
     ]
     const stats = computePoolStats('eventChar', records)
-    expect(stats.fives.map((f) => [f.pulls, f.incomplete, f.off])).toEqual([
-      [3, true, true],
-      [6, false, false],
+    expect(stats.fives.map((f) => [f.pulls, f.off])).toEqual([
+      [3, true],
+      [6, false],
     ])
-    expect(stats.avgPulls).toBe(6) // 只计完整的提纳里
-    expect(stats.avgUpPulls).toBeNull() // 组含 incomplete 成员 → 整组排除
-    expect(stats.offRate).toBe(0.5) // 迪卢克仍计入歪率分母:1/2
+    expect(stats.avgPulls).toBe(4.5) // (3+6)/2
+    expect(stats.avgUpPulls).toBe(9) // 歪 3 + 必中 6
+    expect(stats.offRate).toBe(0.5) // 1/2
     expect(stats.guarantee).toBe('fiftyFifty')
   })
 
-  it('首条即五星的退化形态同规则(pulls 按 1 占位)', () => {
+  it('首条即五星的退化形态同规则(pulls=1)', () => {
     const records = [
-      rec(301, 0, '迪卢克', 5), // 五星① pulls=1,incomplete,歪
-      rec(301, 1, '提纳里', 5), // 五星② pulls=1,完整,UP → 组 pulls=2 但成员 incomplete
+      rec(301, 0, '迪卢克', 5), // 五星① pulls=1,歪
+      rec(301, 1, '提纳里', 5), // 五星② pulls=1,UP → 组 pulls=2
     ]
     const stats = computePoolStats('eventChar', records)
-    expect(stats.fives[0]?.pulls).toBe(1)
-    expect(stats.fives[0]?.incomplete).toBe(true)
-    expect(stats.fives[1]?.incomplete).toBe(false)
+    expect(stats.fives.map((f) => f.pulls)).toEqual([1, 1])
     expect(stats.avgPulls).toBe(1)
-    expect(stats.avgUpPulls).toBeNull()
+    expect(stats.avgUpPulls).toBe(2)
     expect(stats.offRate).toBe(0.5)
   })
 
-  it('仅一个五星(必不完整)→ avgPulls/avgUpPulls 双 null,歪率照算', () => {
+  it('仅一个五星:avgPulls 照算,歪开组未闭 avgUpPulls 为 null', () => {
     const stats = computePoolStats('eventChar', [rec(301, 0, '迪卢克', 5)])
     expect(stats.fives).toHaveLength(1)
-    expect(stats.avgPulls).toBeNull()
+    expect(stats.avgPulls).toBe(1)
     expect(stats.avgUpPulls).toBeNull()
     expect(stats.offRate).toBe(1)
   })
 })
 
-describe('H4 UP 分组(歪+必中合并;未闭合歪丢弃;incomplete 整组排除)', () => {
+describe('H4 UP 分组(歪+必中合并;未闭合歪丢弃)', () => {
   it('分组与手工核算一致', () => {
     const records = [
-      rec(400, 0, '迪卢克', 5), // ① pulls=1 incomplete 歪 → 开组
+      rec(400, 0, '迪卢克', 5), // ① pulls=1 歪 → 开组
       rec(301, 1, '三星武器', 3),
       rec(301, 2, '三星武器', 3),
-      rec(301, 3, '提纳里', 5), // ② pulls=3 UP → 组1=1+3=4,含 incomplete 成员 → 排除
+      rec(301, 3, '提纳里', 5), // ② pulls=3 UP → 组1=1+3=4
       ...fillers(301, 4, 3),
       rec(400, 7, '刻晴', 5), // ③ pulls=4 歪 → 开组
       ...fillers(301, 8, 5),
-      rec(301, 13, '提纳里', 5), // ④ pulls=6 UP → 组2=4+6=10,完整 → 计入
+      rec(301, 13, '提纳里', 5), // ④ pulls=6 UP → 组2=4+6=10
       rec(400, 14, '三星武器', 3),
       rec(301, 15, '三星武器', 3),
-      rec(400, 16, '提纳里', 5), // ⑤ pulls=3 UP,直接 UP 自成一组 → 组3=3,计入
+      rec(400, 16, '提纳里', 5), // ⑤ pulls=3 UP,直接 UP 自成一组 → 组3=3
       ...fillers(301, 17, 4),
       rec(301, 21, '莫娜', 5), // ⑥ pulls=5 歪 → 开组,结尾未闭合 → 丢弃
     ]
     const stats = computePoolStats('eventChar', records)
     expect(stats.totalPulls).toBe(22)
-    // 有效组:组2=10、组3=3 → 均值 6.5
-    expect(stats.avgUpPulls).toBe(6.5)
-    expect(stats.avgPulls).toBe(4.2) // 完整五星 3+4+6+3+5=21,/5
+    // 有效组:组1=4、组2=10、组3=3 → 均值 17/3
+    expect(stats.avgUpPulls).toBeCloseTo(17 / 3, 12)
+    expect(stats.avgPulls).toBeCloseTo(22 / 6, 12) // 全部五星 1+3+4+6+3+5=22,/6
     expect(stats.offRate).toBe(0.5) // T,F,T,F,F,T → 3/6
     expect(stats.guarantee).toBe('guaranteed') // 末个五星莫娜歪
     expect(stats.pity?.current).toBe(0)
@@ -241,11 +239,11 @@ describe('H13 集录独立保底、新手无保底带、unknown 兜底', () => {
     const stats = computePoolStats('chronicled', [...chronicled, ...eventChar])
     expect(stats.codes).toEqual([500])
     expect(stats.totalPulls).toBe(19) // 301 行不混入
-    expect(stats.fives.map((f) => [f.pulls, f.incomplete, f.off])).toEqual([
-      [11, true, null],
-      [3, false, null],
+    expect(stats.fives.map((f) => [f.pulls, f.off])).toEqual([
+      [11, null],
+      [3, null],
     ])
-    expect(stats.avgPulls).toBe(3)
+    expect(stats.avgPulls).toBe(7)
     expect(stats.offRate).toBeNull()
     expect(stats.avgUpPulls).toBeNull()
     expect(stats.guarantee).toBeNull()
@@ -268,8 +266,8 @@ describe('H13 集录独立保底、新手无保底带、unknown 兜底', () => {
     expect(stats.scope).toBe('novice')
     expect(stats.codes).toEqual([100])
     expect(stats.totalPulls).toBe(20)
-    expect(stats.fives.map((f) => [f.pulls, f.incomplete, f.off])).toEqual([[16, true, null]])
-    expect(stats.avgPulls).toBeNull()
+    expect(stats.fives.map((f) => [f.pulls, f.off])).toEqual([[16, null]])
+    expect(stats.avgPulls).toBe(16)
     expect(stats.offRate).toBeNull()
     expect(stats.avgUpPulls).toBeNull()
     expect(stats.guarantee).toBeNull()
@@ -294,9 +292,9 @@ describe('H14 防御分支(off=null 不可达路径,空名注入钉死)', () => 
   it('off=null:断组丢弃、不入歪率分母、avgUpPulls 不含该组', () => {
     const records = [
       rec(301, 0, '三星武器', 3),
-      rec(301, 1, '迪卢克', 5), // ① pulls=2 incomplete 歪 → 开组
+      rec(301, 1, '迪卢克', 5), // ① pulls=2 歪 → 开组
       rec(301, 2, '三星武器', 3),
-      rec(301, 3, '提纳里', 5), // ② pulls=2 UP → 组1=4,含 incomplete 成员 → 排除
+      rec(301, 3, '提纳里', 5), // ② pulls=2 UP → 组1=4
       rec(301, 4, '三星武器', 3),
       rec(301, 5, '刻晴', 5), // ③ pulls=2 歪 → 开组
       rec(301, 6, '三星武器', 3),
@@ -306,9 +304,9 @@ describe('H14 防御分支(off=null 不可达路径,空名注入钉死)', () => 
     ]
     const stats = computePoolStats('eventChar', records)
     expect(stats.fives[3]?.off).toBeNull()
-    expect(stats.avgUpPulls).toBe(2) // 仅直接 UP 组;刻晴组因断组丢弃,组1因 incomplete 排除
+    expect(stats.avgUpPulls).toBe(3) // 组1=4、直接 UP 组=2 → (4+2)/2;刻晴组因断组丢弃
     expect(stats.offRate).toBe(0.5) // 分母只含 T,F,T,F:2/4
-    expect(stats.avgPulls).toBe(2) // 完整五星(含 off=null 者)pulls 均 2
+    expect(stats.avgPulls).toBe(2) // 全部五星(含 off=null 者)pulls 均 2
     expect(stats.guarantee).toBe('fiftyFifty') // 末个五星 off=false
   })
 

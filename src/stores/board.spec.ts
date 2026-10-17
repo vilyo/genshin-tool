@@ -1,5 +1,5 @@
 import { createPinia, setActivePinia } from 'pinia'
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 import { makeBoardRecords } from '@/test-support/boardFixture'
 import { useAppStore } from '@/stores/app'
 import { useBoardStore } from '@/stores/board'
@@ -20,6 +20,8 @@ function mountStores() {
   app.currentUid = '777'
   return { app, board }
 }
+
+beforeEach(() => localStorage.clear())
 
 describe('board store · 页签与作用域', () => {
   it('六页签:五固定页签常驻,档案有未知 code 时「未收录」出现(顺序钉死)', () => {
@@ -57,7 +59,7 @@ describe('board store · 页签与作用域', () => {
     board.selectScope('eventWeapon')
     expect(board.stats.scope).toBe('eventWeapon')
     expect(board.stats.pity).toMatchObject({ current: 5, hard: 80, softFrom: 63 })
-    expect(board.verdict.displayRating).toBe('B') // 天空之翼 55 抽,武器档 54–62 → B
+    expect(board.verdict.displayRating).toBe('S') // 均值 56/2=28,武器档 ≤40 → S
     expect(board.meterScale).toEqual({ hard: 80, bounds: [19, 40, 68] })
     expect(board.ledgerCode).toBeNull()
   })
@@ -70,7 +72,7 @@ describe('board store · 页签与作用域', () => {
     expect(board.activeTab.label).toBe('新手祈愿')
   })
 
-  it('时间线行:新的在前 + 程度档 + C/R 标注经名册联查(不完整五星标 — 由组件处理)', () => {
+  it('时间线行:新的在前 + 程度档 + C/R 标注经名册联查', () => {
     const { board } = mountStores()
     expect(board.timelineRows.map((row) => row.five.record.name)).toEqual([
       '莫娜',
@@ -162,5 +164,19 @@ describe('board store · 流水抽屉', () => {
     expect(board.listView).toBe('roster')
     board.setListView('timeline')
     expect(board.listView).toBe('timeline')
+  })
+})
+
+
+describe('首个五星统计口径(2026-10-18 裁决:按档案数据如实计入)', () => {
+  it('首个五星计入均值、UP 均值、名册与高光', () => {
+    const { board } = mountStores()
+    expect(board.stats.fives).toHaveLength(5)
+    expect(board.stats.avgPulls).toBe(201 / 5) // 含刻晴首金 1 抽
+    expect(board.stats.avgUpPulls).toBe(16)
+    expect(board.roster.cards.at(-1)?.acquisitions[0]?.pulls).toBe(1)
+    // 高光最快:刻晴 1(角色)与磐岩结绿 1(武器)并列,比较器序更晚的磐岩结绿胜出
+    expect(board.highlights.fastest?.pulls).toBe(1)
+    expect(board.highlights.fastest?.name).toBe('磐岩结绿')
   })
 })

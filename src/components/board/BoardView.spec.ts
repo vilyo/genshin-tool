@@ -1,7 +1,7 @@
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { nextTick } from 'vue'
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 import { makeBoardRecords } from '@/test-support/boardFixture'
 import type { StoredRecord } from '@/domain/records'
 import type { ArchiveSummary } from '@/domain/ports'
@@ -46,6 +46,8 @@ function tabByText(wrapper: ReturnType<typeof mountBoard>['wrapper'], label: str
   return wrapper.findAll('.pool-tab').find((tab) => tab.find('.tab-label').text() === label)!
 }
 
+beforeEach(() => localStorage.clear())
+
 describe('BoardView · 页签/保底仪/时间线/评语/高光/状态栏', () => {
   it('六页签渲染:官方池名顺序 + 五星计数角标(新手祈愿不标)', () => {
     const { wrapper } = mountBoard()
@@ -64,6 +66,29 @@ describe('BoardView · 页签/保底仪/时间线/评语/高光/状态栏', () =
     })
     expect(counts).toEqual(['5', '2', '1', '', '0', '0'])
     expect(wrapper.find('.pool-tab.on .tab-label').text()).toBe('角色活动祈愿')
+  })
+
+  it('首个五星按档案数据如实计数与分档(2026-10-18 裁决)', async () => {
+    // 合成数据:首个五星在第 16 抽,随后再过 2 抽获得第二个五星。
+    const records = Array.from({ length: 18 }, (_, index) => storedRecord({
+      gachaType: index % 2 === 0 ? 301 : 400,
+      name: index === 15 ? '测试首金' : index === 17 ? '测试次金' : '测试武器',
+      rankType: index === 15 || index === 17 ? 5 : 3,
+      time: `2026-01-01 10:${String(index).padStart(2, '0')}:00`,
+      id: null,
+    }))
+    const { wrapper, board } = mountWith(records)
+    const first = wrapper.findAll('.wish-row')[1]!
+    expect(first.find('.wish-q').text()).toBe('16')
+    expect(first.find('.wish-degree').text()).toBe('超欧')
+    expect(first.find('.meter').attributes('aria-label')).toContain('出货 16 抽')
+    expect(first.classes()).toContain('rare-super-lucky')
+    expect(wrapper.find('.wish-q').text()).toBe('2')
+    expect(board.stats.avgPulls).toBe(9) // (16 + 2) / 2
+    await wrapper.findAll('.view-switch button').find((button) => button.text() === '名册')!.trigger('click')
+    const counts = wrapper.findAll('.ci-q')
+    expect(counts.map((item) => item.text())).toEqual(['2 抽', '16 抽'])
+    expect(counts[1]!.attributes('title')).toBeUndefined()
   })
 
   it('保底仪:大数字垫抽 30 + 大保底就绪章 + 301+400 合并结算 + 次级读数组', () => {
@@ -87,47 +112,47 @@ describe('BoardView · 页签/保底仪/时间线/评语/高光/状态栏', () =
     expect(rows).toHaveLength(5)
     const degrees = rows.map((row) => row.find('.wish-degree').classes())
     expect(degrees.map((classes) => classes.includes('deg-unlucky'))).toEqual([true, true, false, false, false])
-    // 刻晴行(不完整)档位词仍按 degreeOf(单一来源)着色,pulls 显「—」
     expect(degrees.map((classes) => classes.includes('deg-super-lucky'))).toEqual([false, false, true, false, true])
     expect(degrees.map((classes) => classes.includes('deg-lucky'))).toEqual([false, false, false, true, false])
-    // 稀有行洗色:超非/超非(莫娜、迪卢克),超欧(雷电将军)
+    // 稀有行洗色:超非/超非(莫娜、迪卢克),超欧(雷电将军、刻晴首金)
     expect(rows[0]!.classes()).toContain('rare-unlucky')
     expect(rows[1]!.classes()).toContain('rare-unlucky')
     expect(rows[2]!.classes()).toContain('rare-super-lucky')
-    // 不完整行:pulls 显「—」、量距条半透明,不洗稀有底
-    const incomplete = rows[4]!
-    expect(incomplete.find('.wish-q').text()).toBe('—')
-    expect(incomplete.find('.meter').classes()).toContain('incomplete')
-    expect(incomplete.classes()).not.toContain('rare-unlucky')
+    expect(rows[4]!.classes()).toContain('rare-super-lucky')
+    // 首金(刻晴 1 抽)照常计数分档,无下界提示
+    const first = rows[4]!
+    expect(first.find('.wish-q').text()).toBe('1')
+    expect(first.find('.wish-degree').text()).toBe('超欧')
+    expect(first.find('.wish-q').attributes('title')).toBeUndefined()
     // 歪章:3 歪 2 不歪;档位词/数字列轨渲染
     expect(wrapper.findAll('.wish-bd.ok')).toHaveLength(2)
     expect(wrapper.findAll('.wish-bd.lost')).toHaveLength(3)
     expect(rows[2]!.find('.wish-q').text()).toBe('8')
-    // 头部计数徽章(完整五星):超欧 1 / 超非 2
+    // 头部计数徽章:超欧 2 / 超非 2
     const badges = wrapper.find('.th-badges').text()
-    expect(badges).toContain('超欧 1')
+    expect(badges).toContain('超欧 2')
     expect(badges).toContain('超非 2')
   })
 
-  it('评语区:修正后评级 B+ + 降档文案 + 修正徽章 + 口径行(title 明光提示)+ 指标瓦片', () => {
+  it('评语区:修正后评级 A+ + 降档文案 + 修正徽章 + 口径行(title 明光提示)+ 指标瓦片', () => {
     const { wrapper } = mountBoard()
-    expect(wrapper.find('.dial-letter').text()).toBe('B+')
-    expect(wrapper.find('.v1').text()).toContain('评级 B+')
-    expect(wrapper.find('.v1').text()).toContain('不疾不徐')
-    expect(wrapper.find('.v2').text()).toContain('平均出货 50')
-    expect(wrapper.find('.v2').text()).toContain('出 UP 8')
+    expect(wrapper.find('.dial-letter').text()).toBe('A+')
+    expect(wrapper.find('.v1').text()).toContain('评级 A+')
+    expect(wrapper.find('.v1').text()).toContain('星辰大致守约')
+    expect(wrapper.find('.v2').text()).toContain('平均出货 40.2')
+    expect(wrapper.find('.v2').text()).toContain('出 UP 16')
     // 期望参考线与明光说明降级为口径行悬停 title(2026-10-17 一屏化精简,原脚注删除)
     expect(wrapper.find('.v2').attributes('title')).toContain('期望参考 62.5(官方综合概率倒数)')
     expect(wrapper.find('.v2').attributes('title')).toContain('捕获明光')
     expect(wrapper.find('.vp-badge.warn').text()).toBe('歪率 60%,评级降半档')
     expect(wrapper.findAll('.stamp')).toHaveLength(0)
     expect(wrapper.find('.vp-footnote').exists()).toBe(false)
-    // 指标瓦片(单行四格):总祈愿 231 / 五星 5 / 平均出货 50 / 歪率 60
+    // 指标瓦片(单行四格):总祈愿 231 / 五星 5 / 平均出货 40.2 / 歪率 60
     const tiles = wrapper.findAll('.tile').map((tile) => tile.text())
     expect(tiles).toHaveLength(4)
     expect(tiles[0]).toContain('231')
     expect(tiles[1]).toContain('5')
-    expect(tiles[2]).toContain('50')
+    expect(tiles[2]).toContain('40.2')
     expect(tiles[3]).toContain('60')
   })
 
@@ -135,13 +160,15 @@ describe('BoardView · 页签/保底仪/时间线/评语/高光/状态栏', () =
     const { wrapper } = mountBoard()
     const cards = wrapper.findAll('.hl-card')
     expect(cards).toHaveLength(1)
+    // 最快:刻晴 1(角色)与磐岩结绿 1(武器)并列,取更晚的磐岩结绿;武器池无歪章
     expect(cards[0]!.text()).toContain('出手如电')
-    expect(cards[0]!.text()).toContain('雷电将军')
-    expect(cards[0]!.text()).toContain('8')
-    expect(cards[0]!.text()).toContain('UP')
+    expect(cards[0]!.text()).toContain('磐岩结绿')
+    expect(cards[0]!.text()).toContain('1')
+    expect(cards[0]!.text()).not.toContain('歪')
+    expect(cards[0]!.text()).not.toContain('UP')
     const journey = wrapper.find('.hl-journey').text()
     expect(journey).toContain('342')
-    expect(journey).toContain('触底 1')
+    expect(journey).not.toContain('触底')
     expect(wrapper.text()).not.toContain('必中 UP')
   })
 
@@ -164,12 +191,12 @@ describe('BoardView · 名册切换与流水抽屉', () => {
     const chips = wrapper.find('.rh-chips').text()
     expect(chips).toContain('UP 2')
     expect(chips).toContain('歪 3')
-    expect(chips).toContain('超欧 1')
+    expect(chips).toContain('超欧 2')
     expect(chips).toContain('超非 2')
-    // 不完整获取的拉数显「—」(刻晴卡为最新获取序最末);尾注为 domain 常量
+    // 首金(刻晴 1 抽)如实展示抽数;尾注为 domain 常量
     const lastCard = cards[cards.length - 1]!
     expect(lastCard.find('.card-name').text()).toContain('刻晴')
-    expect(lastCard.find('.ci-q').text()).toBe('— 抽')
+    expect(lastCard.find('.ci-q').text()).toBe('1 抽')
     expect(wrapper.find('.roster-foot').text()).toContain('活动赠送')
     await wrapper.findAll('.view-switch button').find((button) => button.text() === '时间线')!.trigger('click')
     expect(wrapper.find('.timeline').exists()).toBe(true)
@@ -271,14 +298,13 @@ describe('BoardView · 头像图标接入(T19,ADR-0005 avatarFor 消费方)', ()
 
   it('高光·出手如电:最快五星头像章清单命中渲染 img', () => {
     const { wrapper } = mountBoard()
-    // 夹具最快完整五星 = 雷电将军 8 抽
+    // 夹具最快五星 = 磐岩结绿 1 抽(与刻晴并列,取更晚者)
     const seal = wrapper.find('.hl-seal')
     expect(seal.find('img').exists()).toBe(true)
-    expect(seal.find('img').attributes('src')).toBe(avatarFor('雷电将军').url)
+    expect(seal.find('img').attributes('src')).toBe(avatarFor('磐岩结绿').url)
   })
 
   it('高光·出手如电:未知名回退首字占位章(无 img)', () => {
-    // 首五星恒不完整不参与最快,补一条完整出货(未知名 → 占位章)
     const { wrapper } = mountWith([
       storedRecord({ gachaType: 301, name: '未来新角色', rankType: 5, time: '2026-05-01 10:00:00' }),
       storedRecord({ gachaType: 301, name: '未来新角色', rankType: 5, time: '2026-05-01 12:00:00' }),

@@ -79,16 +79,16 @@ describe('H10 命座/精炼跨池累计序号(globalIndex 为全档案口径)', 
 describe('分组与排序(每卡片=一个物品,获取列表新的在前)', () => {
   it('同池同名两次五星 → 一张卡片两条获取,新的在前', () => {
     const records = [
-      rec(301, 0, '迪卢克', 5), // ① incomplete,pulls=1,全局第 1 次
+      rec(301, 0, '迪卢克', 5), // ① pulls=1,全局第 1 次
       ...fillers(301, 1, 4),
       rec(301, 5, '迪卢克', 5), // ② pulls=5,全局第 2 次
     ]
     const view = buildRoster('eventChar', records)
     expect(view.cards).toHaveLength(1)
     expect(view.cards[0]?.name).toBe('迪卢克')
-    expect(view.cards[0]?.acquisitions.map((a) => [a.pulls, a.incomplete, a.globalIndex])).toEqual([
-      [5, false, 2],
-      [1, true, 1],
+    expect(view.cards[0]?.acquisitions.map((a) => [a.pulls, a.globalIndex])).toEqual([
+      [5, 2],
+      [1, 1],
     ])
   })
 
@@ -106,19 +106,18 @@ describe('分组与排序(每卡片=一个物品,获取列表新的在前)', () 
   })
 })
 
-describe('pulls/incomplete/off 字段', () => {
-  it('作用域首个五星 incomplete=true 且 pulls 原值;非 eventChar 作用域 off 恒 null', () => {
+describe('pulls/off 字段', () => {
+  it('作用域首个五星照常携带 pulls;非 eventChar 作用域 off 恒 null', () => {
     const records = [
       ...fillers(200, 0, 10),
-      rec(200, 10, '迪卢克', 5), // ① pulls=11,incomplete,off=null(standard 不判歪)
+      rec(200, 10, '迪卢克', 5), // ① pulls=11,off=null(standard 不判歪)
       ...fillers(200, 11, 4),
-      rec(200, 15, '刻晴', 5), // ② pulls=5,完整
+      rec(200, 15, '刻晴', 5), // ② pulls=5
     ]
     const view = buildRoster('standard', records)
     expect(view.cards.map((c) => c.name)).toEqual(['刻晴', '迪卢克'])
     expect(view.cards[0]?.acquisitions[0]).toEqual({
       pulls: 5,
-      incomplete: false,
       off: null,
       date: '2022-08-01',
       pool: '常驻祈愿',
@@ -126,7 +125,6 @@ describe('pulls/incomplete/off 字段', () => {
     })
     expect(view.cards[1]?.acquisitions[0]).toEqual({
       pulls: 11,
-      incomplete: true, // 首个五星:pulls 是不可知下界,UI 显「—」
       off: null,
       date: '2022-08-01',
       pool: '常驻祈愿',
@@ -149,9 +147,9 @@ describe('pulls/incomplete/off 字段', () => {
 })
 
 describe('汇总芯片(UP n · 歪 n · 超欧 n · 超非 n)', () => {
-  it('eventChar:up/off 数 off 非 null 的五星(含不完整);超欧/超非仅完整五星按 degreeOf', () => {
+  it('eventChar:up/off 数 off 非 null 的五星;超欧/超非按 degreeOf', () => {
     const records = [
-      rec(301, 0, '迪卢克', 5), // ① pulls=1 incomplete 歪
+      rec(301, 0, '迪卢克', 5), // ① pulls=1 歪
       ...fillers(301, 1, 29),
       rec(301, 30, '提纳里', 5), // ② pulls=30 UP,degree=lucky(23–45)
       ...fillers(301, 31, 43),
@@ -160,7 +158,7 @@ describe('汇总芯片(UP n · 歪 n · 超欧 n · 超非 n)', () => {
       rec(301, 90, '提纳里', 5), // ④ pulls=16 UP,degree=superLucky(≤22)
     ]
     const view = buildRoster('eventChar', records)
-    expect(view.summary).toEqual({ up: 2, off: 2, superLucky: 1, unlucky: 0 })
+    expect(view.summary).toEqual({ up: 2, off: 2, superLucky: 2, unlucky: 0 })
     expect(view.cards.map((c) => c.name)).toEqual(['提纳里', '刻晴', '迪卢克'])
     expect(view.cards[0]?.acquisitions.map((a) => a.globalIndex)).toEqual([2, 1]) // 同物两次同卡
     expect(totalAcquisitions(view)).toBe(4)
@@ -168,12 +166,12 @@ describe('汇总芯片(UP n · 歪 n · 超欧 n · 超非 n)', () => {
 
   it('非 eventChar 作用域:up/off 置 null(UI 隐藏芯片),超欧/超非照算', () => {
     const records = [
-      rec(200, 0, '刻晴', 5), // ① incomplete
+      rec(200, 0, '刻晴', 5), // ① pulls=1 → 超欧(首金照常分档)
       ...fillers(200, 1, 85),
-      rec(200, 86, '迪卢克', 5), // ② pulls=86 完整 → 超非(≥77)
+      rec(200, 86, '迪卢克', 5), // ② pulls=86 → 超非(≥77)
     ]
     const view = buildRoster('standard', records)
-    expect(view.summary).toEqual({ up: null, off: null, superLucky: 0, unlucky: 1 })
+    expect(view.summary).toEqual({ up: null, off: null, superLucky: 1, unlucky: 1 })
   })
 })
 

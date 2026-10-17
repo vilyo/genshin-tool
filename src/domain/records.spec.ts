@@ -46,9 +46,11 @@ describe('compareRecords(全库统一时序,spec 01 §2)', () => {
     expect(compareRecords(large, small)).toBe(1)
   })
 
-  it('E7:同秒均无 id 按 seq 升序;任一侧无 seq(如 incoming 行)视为相等', () => {
-    expect(compareRecords(stored({ seq: 0 }), stored({ seq: 1 }))).toBe(-1)
-    expect(compareRecords(stored({ seq: 1 }), stored({ seq: 0 }))).toBe(1)
+  it('E7:同秒无 id 按导入 rowid 排序,重复份数 seq 不影响抽序', () => {
+    const first = stored({ seq: 1, rowid: 10 })
+    const second = stored({ seq: 0, rowid: 11 })
+    expect(compareRecords(first, second)).toBe(-1)
+    expect(compareRecords(second, first)).toBe(1)
     expect(compareRecords(wish({}), wish({}))).toBe(0)
   })
 
@@ -61,9 +63,9 @@ describe('compareRecords(全库统一时序,spec 01 §2)', () => {
     expect(compareRecords(stored({ id: '1790000000000009998' }), stored({ id: '1790000000000009999' }))).toBe(-1)
   })
 
-  it('比较器不比 name:同秒同 seq 视为相等,排序对相等元素保持稳定(不交换)', () => {
-    const a = stored({ name: '行秋', rankType: 4, seq: 2 })
-    const b = stored({ name: '西风剑', rankType: 4, seq: 2 })
+  it('未落库记录同秒无 id 时保持输入顺序,不按名称排序', () => {
+    const a = wish({ name: '行秋', rankType: 4 })
+    const b = wish({ name: '西风剑', rankType: 4 })
     expect(compareRecords(a, b)).toBe(0)
     const sorted = [b, a].sort(compareRecords)
     expect(sorted[0]).toBe(b)

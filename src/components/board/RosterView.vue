@@ -82,7 +82,7 @@ const cards = computed(() =>
             :key="`${acquisition.date}-${index}`"
             class="card-item"
           >
-            <span class="ci-q">{{ acquisition.incomplete ? '—' : acquisition.pulls }} 抽</span>
+            <span class="ci-q">{{ acquisition.pulls }} 抽</span>
             <span
               v-if="acquisition.off !== null"
               class="ci-off"

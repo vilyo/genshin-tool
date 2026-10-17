@@ -231,13 +231,13 @@ pub fn clear_archive(conn: &Connection, uid: &str) -> rusqlite::Result<usize> {
 }
 
 /// 读取指定档案全部记录,SQL 侧按 §2 比较器预排序
-/// (time 升序 → 无 id 行在前 → id 数值升序 → seq 升序;装载后 domain 仍会稳定排序为最终口径)
+/// (time 升序 → 无 id 行在前 → id 数值升序 → rowid 导入序;装载后 domain 仍会稳定排序为最终口径)
 pub fn load_records(conn: &Connection, uid: &str) -> rusqlite::Result<Vec<StoredRecord>> {
     let mut stmt = conn.prepare(
         "SELECT rowid, gacha_type, time, name, rank_type, id, seq
          FROM pull_records
          WHERE uid = ?1
-         ORDER BY time, (id IS NULL) DESC, CAST(id AS INTEGER), seq",
+         ORDER BY time, (id IS NULL) DESC, CAST(id AS INTEGER), rowid",
     )?;
     let rows = stmt.query_map(params![uid], |row| {
         Ok(StoredRecord {
@@ -787,6 +787,24 @@ mod tests {
         let loaded = load_records(&conn, uid).unwrap();
         let names: Vec<&str> = loaded.iter().map(|r| r.name.as_str()).collect();
         assert_eq!(names, ["早", "甲", "丙", "乙", "晚"]);
+    }
+
+    #[test]
+    fn same_second_import_preserves_pull_order_including_duplicates() {
+        let conn = memory_db();
+        let uid = "900000001";
+        // 合成十连:重复武器应留在五星前,不得被 seq 或名字重排。
+        let rows = vec![
+            wish(301, "2026-01-01 10:00:00", "乙武器", 3, None),
+            wish(301, "2026-01-01 10:00:00", "乙武器", 3, None),
+            wish(301, "2026-01-01 10:00:00", "首个五星", 5, None),
+            wish(301, "2026-01-01 10:00:00", "甲武器", 3, None),
+        ];
+        insert_records(&conn, uid, &rows).unwrap();
+        let loaded = load_records(&conn, uid).unwrap();
+        let names: Vec<&str> = loaded.iter().map(|r| r.name.as_str()).collect();
+        assert_eq!(names, ["乙武器", "乙武器", "首个五星", "甲武器"]);
+        assert_eq!(loaded[1].seq, 1);
     }
 
     #[test]

@@ -123,24 +123,24 @@ describe('H7 评级五档全边界(spec D10)', () => {
 })
 
 describe('H8 歪率修正(spec D11:offRate ≥ 60% 降半档)', () => {
-  /** 五星序列 歪/UP/歪/UP/歪、完整档各 30 抽 → 原始 S 且 offRate = 3/5 = 0.60(整) */
+  /** 五星序列 歪/UP/歪/UP/歪:pulls 1+30×4 → avgPulls=121/5=24.2(S 档),offRate = 3/5 = 0.60(整) */
   function correctionCase(): WishRecord[] {
     return [
-      rec(301, 0, '迪卢克', 5), // 五星① pulls=1,incomplete,歪(计入歪率分母,不计均值)
+      rec(301, 0, '迪卢克', 5), // 五星① pulls=1,歪
       ...fillers(301, 1, 29),
-      rec(301, 30, '提纳里', 5), // 五星② pulls=30,完整,UP
+      rec(301, 30, '提纳里', 5), // 五星② pulls=30,UP
       ...fillers(301, 31, 29),
-      rec(301, 60, '刻晴', 5), // 五星③ pulls=30,完整,歪
+      rec(301, 60, '刻晴', 5), // 五星③ pulls=30,歪
       ...fillers(301, 61, 29),
-      rec(301, 90, '提纳里', 5), // 五星④ pulls=30,完整,UP
+      rec(301, 90, '提纳里', 5), // 五星④ pulls=30,UP
       ...fillers(301, 91, 29),
-      rec(301, 120, '莫娜', 5), // 五星⑤ pulls=30,完整,歪
+      rec(301, 120, '莫娜', 5), // 五星⑤ pulls=30,歪
     ]
   }
 
   it('offRate 恰 0.60 触发 S→A+:显示评级加 +、评语改降后档、修正说明含实际百分比', () => {
     const stats = computePoolStats('eventChar', correctionCase())
-    expect(stats.avgPulls).toBe(30)
+    expect(stats.avgPulls).toBeCloseTo(121 / 5, 12)
     expect(stats.offRate).toBeCloseTo(0.6, 12)
     const view = applyVerdict(stats)
     expect(view.rating).toBe('S')
@@ -150,15 +150,15 @@ describe('H8 歪率修正(spec D11:offRate ≥ 60% 降半档)', () => {
     expect(view.rosterStale).toBe(false)
   })
 
-  /** 五连歪、完整档各 80 抽 → 原始 D 且 offRate = 1(远超触发线) */
+  /** 五连歪、各 80 抽 → 原始 D 且 offRate = 1(远超触发线) */
   function dCase(): WishRecord[] {
-    const names = ['刻晴', '莫娜', '琴', '七七']
-    const records = [rec(301, 0, '迪卢克', 5)]
+    const names = ['迪卢克', '刻晴', '莫娜', '琴', '七七'] // 全 1.0 名单成员 → 恒歪
+    const records: WishRecord[] = []
     let minute = 0
-    for (let i = 0; i < 4; i += 1) {
-      records.push(...fillers(301, minute + 1, 79))
+    for (const name of names) {
+      records.push(...fillers(301, minute, 79))
       minute += 80
-      records.push(rec(301, minute, names[i], 5)) // pulls=80
+      records.push(rec(301, minute - 1, name, 5)) // pulls=80
     }
     return records
   }
@@ -190,14 +190,13 @@ describe('H8 歪率修正(spec D11:offRate ≥ 60% 降半档)', () => {
   })
 })
 
-describe('H9 低抽数彩蛋(spec D11:最快完整五星 ≤ 10 抽)', () => {
+describe('H9 低抽数彩蛋(spec D11:最快五星 ≤ 10 抽)', () => {
   it(`pulls=${EASTER_EGG_MAX_PULLS} 触发,徽章含名/抽数/日期`, () => {
     const records = [
-      rec(200, 0, '天空之刃', 5), // 作用域首个五星恒 incomplete(pulls=1 占位,不参与)
-      ...fillers(200, 1, 9),
-      rec(200, 10, '风鹰剑', 5), // pulls=10,完整 → 触发
-      ...fillers(200, 11, 30),
-      rec(200, 41, '四星武器', 4),
+      ...fillers(200, 0, 9),
+      rec(200, 9, '风鹰剑', 5), // pulls=10 → 触发
+      ...fillers(200, 10, 30),
+      rec(200, 40, '四星武器', 4),
     ]
     const view = applyVerdict(computePoolStats('standard', records))
     expect(view.easterEgg).toEqual({ name: '风鹰剑', pulls: 10, date: '2022-08-01' })
@@ -205,29 +204,30 @@ describe('H9 低抽数彩蛋(spec D11:最快完整五星 ≤ 10 抽)', () => {
 
   it('pulls=11 不触发', () => {
     const records = [
-      rec(200, 0, '天空之刃', 5),
-      ...fillers(200, 1, 10),
-      rec(200, 11, '风鹰剑', 5), // pulls=11
+      ...fillers(200, 0, 10),
+      rec(200, 10, '风鹰剑', 5), // pulls=11
     ]
     expect(applyVerdict(computePoolStats('standard', records)).easterEgg).toBeNull()
   })
 
-  it('不完整五星不触发(pulls=1 是占位下界,不可信)', () => {
+  it('作用域首金 pulls=1 照常参与彩蛋判定(2026-10-18 裁决:按档案数据如实计)', () => {
     const records = [
-      rec(200, 0, '天空之刃', 5), // incomplete pulls=1(误信即触发)
+      rec(200, 0, '天空之刃', 5), // pulls=1 → 触发
       ...fillers(200, 1, 10),
-      rec(200, 11, '风鹰剑', 5), // 完整 pulls=11,不达阈值
     ]
-    expect(applyVerdict(computePoolStats('standard', records)).easterEgg).toBeNull()
+    expect(applyVerdict(computePoolStats('standard', records)).easterEgg).toEqual({
+      name: '天空之刃',
+      pulls: 1,
+      date: '2022-08-01',
+    })
   })
 
   it('并列最快取更晚的一次', () => {
     const records = [
-      rec(200, 0, '天空之刃', 5),
-      ...fillers(200, 1, 9),
-      rec(200, 10, '风鹰剑', 5), // pulls=10(早)
-      ...fillers(200, 11, 9),
-      rec(200, 20, '阿莫斯之弓', 5), // pulls=10(晚,并列)
+      ...fillers(200, 0, 9),
+      rec(200, 9, '风鹰剑', 5), // pulls=10(早)
+      ...fillers(200, 10, 9),
+      rec(200, 19, '阿莫斯之弓', 5), // pulls=10(晚,并列)
     ]
     expect(applyVerdict(computePoolStats('standard', records)).easterEgg).toEqual({
       name: '阿莫斯之弓',
@@ -240,9 +240,8 @@ describe('H9 低抽数彩蛋(spec D11:最快完整五星 ≤ 10 抽)', () => {
 describe('applyVerdict 视图组装(spec D11/D12 其余字段)', () => {
   it('不评级作用域:评级/评语/修正全落 null,彩蛋与脚注常量照常输出', () => {
     const records = [
-      rec(200, 0, '天空之刃', 5),
-      ...fillers(200, 1, 4),
-      rec(200, 5, '风鹰剑', 5), // pulls=5,完整 → 触发彩蛋
+      ...fillers(200, 0, 4),
+      rec(200, 4, '风鹰剑', 5), // pulls=5 → 触发彩蛋
     ]
     const view = applyVerdict(computePoolStats('standard', records))
     expect(view.scope).toBe('standard')
@@ -255,13 +254,11 @@ describe('applyVerdict 视图组装(spec D11/D12 其余字段)', () => {
     expect(view.footnote).toBe(CAPTURE_RADIANCE_FOOTNOTE)
   })
 
-  it('无完整五星(avgPulls null):不评级,歪率再高也无修正对象;大保底就绪照常亮', () => {
+  it('仅一枚五星:avgPulls 照算评级,歪率 100% 降半档,大保底就绪照常亮', () => {
     const view = applyVerdict(computePoolStats('eventChar', [rec(301, 0, '迪卢克', 5)]))
-    expect(view.avgPulls).toBeNull()
-    expect(view.rating).toBeNull()
-    expect(view.displayRating).toBeNull()
-    expect(view.comment).toBeNull()
-    expect(view.correction).toBeNull()
+    expect(view.avgPulls).toBe(1)
+    expect(view.rating).toBe('S')
+    expect(view.displayRating).toBe('A+')
     expect(view.guaranteed).toBe(true) // 末个五星歪 → guarantee guaranteed
   })
 
