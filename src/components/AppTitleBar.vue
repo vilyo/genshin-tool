@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useAppStore } from '@/stores/app'
 import { useThemeStore } from '@/stores/theme'
 import SettingsPanel from '@/components/settings/SettingsPanel.vue'
+import appIcon from '@/assets/app-icon.png'
 
 /** 粘贴/Excel 弹窗开关由 App 持有(空态也要能呼出);文件导入与一键获取在 store 内闭环 */
 const emit = defineEmits<{ 'open-paste': []; 'open-excel': [] }>()
@@ -61,10 +62,13 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick))
       class="brand"
       data-tauri-drag-region
     >
-      <span
+      <img
         class="brand-mark"
-        aria-hidden="true"
-      />
+        :src="appIcon"
+        alt=""
+        draggable="false"
+        data-tauri-drag-region
+      >
       <span class="brand-name">原神工具箱</span>
       <span class="brand-tag">ARMILLARY</span>
     </div>
@@ -169,12 +173,11 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick))
   letter-spacing: 0.14em;
 }
 
-/* 菱形徽记(board.html .logo 同款) */
 .brand-mark {
-  width: 9px;
-  height: 9px;
-  border: 1.5px solid var(--accent);
-  transform: rotate(45deg);
+  width: 28px;
+  height: 28px;
+  flex: none;
+  object-fit: contain;
 }
 
 .brand-tag {
