@@ -24,11 +24,15 @@
   --rare-edge-super-lucky: rgba(143, 217, 168, 0.55);
   --rare-bg-unlucky: rgba(217, 111, 124, 0.1);
   --rare-edge-unlucky: rgba(217, 111, 124, 0.55);
-  --pity-track: #161e2a;
-  --pity-hatch: rgba(130, 168, 234, 0.5);
-  --pity-boundary: rgba(130, 168, 234, 0.5);
-  --pity-fill-a: rgba(79, 196, 176, 0.95);
-  --pity-fill-b: rgba(56, 152, 138, 0.75);
+  /* 保底计量使用灰靛蓝，青玉色仅用于必中状态。 */
+  --pity-ink: #9aafe0;
+  --pity-cursor: #9aafe0;
+  --pity-halo: rgba(154, 175, 224, 0.12);
+  --pity-track: #1b2230;
+  --pity-hatch: rgba(154, 175, 224, 0.5);
+  --pity-boundary: rgba(154, 175, 224, 0.5);
+  --pity-fill-a: #748fc5;
+  --pity-fill-b: #6d86bc;
   --tip-stroke: #0c1118;
 }
 
@@ -52,10 +56,13 @@ html[data-theme='light'] {
   --rare-edge-super-lucky: rgba(47, 143, 99, 0.55);
   --rare-bg-unlucky: rgba(190, 78, 96, 0.085);
   --rare-edge-unlucky: rgba(190, 78, 96, 0.55);
-  --pity-track: #e9e3d4;
-  --pity-hatch: rgba(62, 99, 184, 0.45);
-  --pity-boundary: rgba(62, 99, 184, 0.5);
-  --pity-fill-a: rgba(23, 112, 104, 0.95);
-  --pity-fill-b: rgba(15, 88, 80, 0.75);
+  --pity-ink: #4b6194;
+  --pity-cursor: #526da5;
+  --pity-halo: rgba(75, 97, 148, 0.12);
+  --pity-track: #e1e4eb;
+  --pity-hatch: rgba(75, 97, 148, 0.45);
+  --pity-boundary: rgba(75, 97, 148, 0.5);
+  --pity-fill-a: #6b82b4;
+  --pity-fill-b: #637aab;
   --tip-stroke: #ffffff;
 }

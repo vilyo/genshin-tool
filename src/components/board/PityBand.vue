@@ -180,7 +180,9 @@ function pct(value: number, hard: number): string {
 <style scoped>
 .pity-band {
   flex: none;
-  padding: 16px 26px 0;
+  /* 时间线实心条为 20px，保底主仪表保持更粗的视觉层级。 */
+  --scale-height: 26px;
+  padding: 10px 26px 6px;
   border-bottom: 1px solid var(--line);
 }
 
@@ -216,15 +218,15 @@ function pct(value: number, hard: number): string {
 .pity-main {
   display: flex;
   align-items: flex-end;
-  gap: 16px;
-  margin-top: 2px;
+  gap: 12px;
+  margin-top: 6px;
 }
 
 .pity-val {
   font-family: var(--font-num);
-  font-size: 76px;
-  line-height: 0.86;
-  color: var(--jade);
+  font-size: 52px;
+  line-height: 1;
+  color: var(--pity-ink);
 }
 
 .pity-unit {
@@ -243,10 +245,9 @@ function pct(value: number, hard: number): string {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
-  border-radius: 8px;
-  padding: 7px 14px;
+  padding: 2px 0;
   letter-spacing: 0.06em;
 }
 
@@ -259,18 +260,13 @@ function pct(value: number, hard: number): string {
 
 .pity-badge.guaranteed {
   color: var(--jade);
-  background: var(--jade-bg);
-  border: 1px solid var(--jade-bd);
 }
 
 .pity-badge.fifty {
   color: var(--mut);
-  background: var(--seal-bg);
-  border: 1px solid var(--line);
 }
 
 .pity-cap {
-  padding-bottom: 6px;
   font-size: 11.5px;
   color: var(--dim);
   letter-spacing: 0.08em;
@@ -281,7 +277,7 @@ function pct(value: number, hard: number): string {
   flex: 1;
   align-self: flex-end;
   border-top: 1px solid var(--line-soft);
-  margin: 0 20px 26px;
+  margin: 0 12px 20px;
 }
 
 .pity-reads {
@@ -291,7 +287,7 @@ function pct(value: number, hard: number): string {
 }
 
 .read {
-  padding: 0 18px;
+  padding: 0 14px;
   text-align: right;
 }
 
@@ -307,12 +303,12 @@ function pct(value: number, hard: number): string {
   font-size: 11.5px;
   color: var(--mut);
   letter-spacing: 0.1em;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
 }
 
 .read .v {
   font-family: var(--font-num);
-  font-size: 30px;
+  font-size: 24px;
   line-height: 1;
   color: var(--fg);
 }
@@ -332,21 +328,21 @@ function pct(value: number, hard: number): string {
 /* —— 刻度标尺 —— */
 .pity-scale {
   position: relative;
-  height: 58px;
-  margin-top: 12px;
+  height: calc(var(--scale-height) + 18px);
+  margin-top: 20px;
 }
 
 .scale-track {
   position: absolute;
   inset: 0 0 18px;
-  border-radius: 4px;
+  border-radius: 2px;
   background: var(--pity-track);
   overflow: visible;
 }
 
 .scale-fill {
   height: 100%;
-  border-radius: 4px 0 0 4px;
+  border-radius: 2px 0 0 2px;
   background: linear-gradient(180deg, var(--pity-fill-a) 0%, var(--pity-fill-b) 100%);
 }
 
@@ -407,7 +403,7 @@ function pct(value: number, hard: number): string {
   font-family: var(--font-mono);
   font-size: 10.5px;
   letter-spacing: 0.06em;
-  color: var(--accent-2);
+  color: var(--pity-ink);
 }
 
 .scale-label.soft {
@@ -420,28 +416,69 @@ function pct(value: number, hard: number): string {
 
 .scale-cursor {
   position: absolute;
-  top: calc((100% - 18px) / 2);
+  top: calc(var(--scale-height) / 2);
 }
 
 .scale-cursor .halo {
   position: absolute;
   left: 0;
   top: 0;
-  width: 22px;
-  height: 22px;
+  width: 18px;
+  height: 18px;
   transform: translate(-50%, -50%);
   border-radius: 50%;
-  background: var(--jade-bg);
+  background: var(--pity-halo);
 }
 
 .scale-cursor .diamond {
   position: absolute;
   left: 0;
   top: 0;
-  width: 11px;
-  height: 11px;
+  width: 9px;
+  height: 9px;
   transform: translate(-50%, -50%) rotate(45deg);
-  background: var(--jade);
+  background: var(--pity-cursor);
   border: 2px solid var(--tip-stroke);
+}
+/* 以内容视口高度适配矮窗口，也覆盖宽而矮的桌面窗口。 */
+@media (max-height: 760px) {
+  .pity-band {
+    padding-top: 8px;
+    padding-bottom: 4px;
+  }
+
+  .pity-main {
+    margin-top: 4px;
+  }
+
+  .pity-scale {
+    margin-top: 18px;
+  }
+
+  .read .v {
+    font-size: 22px;
+  }
+
+  .pity-empty {
+    padding: 12px 0;
+  }
+}
+
+/* 窄窗收掉装饰走线，为说明和三组读数留出空间。 */
+@container board (max-width: 1150px) {
+  .pity-trace {
+    border: none;
+    margin-right: 0;
+    margin-left: 0;
+  }
+
+  .pity-main {
+    gap: 10px;
+  }
+
+  .read {
+    padding-right: 12px;
+    padding-left: 12px;
+  }
 }
 </style>
