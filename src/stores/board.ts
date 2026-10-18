@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { historicalPities, type HistoricalPity } from '@/domain/historicalPity'
 import {
   buildHighlights,
@@ -12,7 +12,7 @@ import {
 import { poolLabel } from '@/domain/pools'
 import { CHAR_HARD_PITY, WEAPON_HARD_PITY, type PoolCategory } from '@/domain/pools'
 import { POOL_TABS, visibleTabs, type PoolTab } from '@/domain/poolTabs'
-import { compareRecords, type StoredRecord } from '@/domain/records'
+import { compareRecords, type StoredRecord, type WishRecord } from '@/domain/records'
 import { buildRoster, type RosterView as RosterViewVM } from '@/domain/roster'
 import { computePoolStats, type PoolStats } from '@/domain/stats'
 import { applyVerdict, degreeOf, type VerdictView } from '@/domain/verdict'
@@ -22,8 +22,8 @@ import { useAppStore } from '@/stores/app'
 /** 流水抽屉每页行数(T17:CSS overflow + 分页按钮,不引入虚拟滚动) */
 export const LEDGER_PAGE_SIZE = 200
 
-/** 左栏视图:时间线(V5 主体)/ 名册(补充视图) */
-export type BoardListView = 'timeline' | 'roster'
+/** 左栏视图:时间线 / 五星卡片 / 聚合名册 */
+export type BoardListView = 'timeline' | 'cards' | 'roster'
 
 /** 时间线单行视图模型(five + 程度档 + C/R 标注,新的在前) */
 export interface TimelineRow {
@@ -47,10 +47,15 @@ export const useBoardStore = defineStore('board', () => {
   const scope = ref<PoolCategory>('eventChar')
   const listView = ref<BoardListView>('timeline')
   const ledgerOpen = ref(false)
+  const ledgerFocus = ref<WishRecord | null>(null)
   const ledgerFiveOnly = ref(false)
   /** eventChar 池内 301/400 二级筛选(明细保留原始 code;null = 全部;只影响明细展示,spec §2) */
   const ledgerCode = ref<number | null>(null)
   const ledgerPage = ref(0)
+  watch(() => app.currentUid, () => {
+    ledgerFocus.value = null
+    ledgerPage.value = 0
+  })
 
   // —— 页签 ——
   const tabs = computed<PoolTab[]>(() => visibleTabs(app.records))
@@ -149,6 +154,17 @@ export const useBoardStore = defineStore('board', () => {
     ledgerOpen.value = open
   }
 
+  /** 定位源记录，含同秒同名的多条迁入记录；先清筛选再计算所在页。 */
+  function openRecord(record: WishRecord): void {
+    ledgerFiveOnly.value = false
+    ledgerCode.value = null
+    const index = ledgerRows.value.findIndex((row) => row === record)
+    if (index < 0) return
+    ledgerFocus.value = record
+    ledgerPage.value = Math.floor(index / LEDGER_PAGE_SIZE)
+    ledgerOpen.value = true
+  }
+
   function setLedgerFiveOnly(value: boolean): void {
     ledgerFiveOnly.value = value
     ledgerPage.value = 0
@@ -171,6 +187,8 @@ export const useBoardStore = defineStore('board', () => {
     scope,
     listView,
     ledgerOpen,
+    ledgerFocus,
+    openRecord,
     ledgerFiveOnly,
     ledgerCode,
     tabs,

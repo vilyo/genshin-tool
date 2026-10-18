@@ -180,9 +180,9 @@ function pct(value: number, hard: number): string {
 <style scoped>
 .pity-band {
   flex: none;
-  /* 时间线实心条为 20px，保底主仪表保持更粗的视觉层级。 */
-  --scale-height: 26px;
-  padding: 10px 26px 6px;
+  /* 通栏结构保留，定稿收薄标尺，为卡片区释放高度。 */
+  --scale-height: 18px;
+  padding: 8px 26px 5px;
   border-bottom: 1px solid var(--line);
 }
 
@@ -219,12 +219,12 @@ function pct(value: number, hard: number): string {
   display: flex;
   align-items: flex-end;
   gap: 12px;
-  margin-top: 6px;
+  margin-top: 4px;
 }
 
 .pity-val {
   font-family: var(--font-num);
-  font-size: 52px;
+  font-size: 48px;
   line-height: 1;
   color: var(--pity-ink);
 }

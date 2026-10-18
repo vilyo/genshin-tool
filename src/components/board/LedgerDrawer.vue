@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { poolLabel } from '@/domain/pools'
 import { LEDGER_PAGE_SIZE, useBoardStore } from '@/stores/board'
 
@@ -9,6 +9,11 @@ import { LEDGER_PAGE_SIZE, useBoardStore } from '@/stores/board'
  * 301/400 二级筛选(只影响明细展示,spec §2);CSS overflow + 每页 200 条分页按钮。
  */
 const store = useBoardStore()
+
+const ledgerBody = ref<HTMLElement | null>(null)
+watch(() => [store.ledgerOpen, store.ledgerEffectivePage, store.ledgerFocus], () => {
+  ledgerBody.value?.querySelector<HTMLElement>('.ledger-target')?.scrollIntoView?.({ block: 'center' })
+}, { flush: 'post' })
 
 const emit = defineEmits<{ close: [] }>()
 
@@ -82,11 +87,13 @@ const codeOptions = computed(() => (store.scope === 'eventChar' ? store.stats.co
           <span>名称</span>
           <span class="th-rank">星级</span>
         </div>
-        <div class="ledger-body">
+        <div ref="ledgerBody" class="ledger-body">
           <div
             v-for="(row, index) in store.ledgerPageRows"
             :key="`${row.time}-${row.name}-${row.gachaType}-${index}`"
             class="ledger-tr"
+            :class="{ 'ledger-target': row === store.ledgerFocus }"
+            :aria-current="row === store.ledgerFocus ? 'true' : undefined"
           >
             <span class="lt-time">{{ row.time }}</span>
             <span class="lt-pool">{{ poolLabel(row.gachaType) }}</span>
@@ -250,6 +257,11 @@ const codeOptions = computed(() => (store.scope === 'eventChar' ? store.stats.co
 .ledger-body .ledger-tr {
   height: 30px;
   border-bottom: 1px solid var(--line-soft);
+}
+
+.ledger-target {
+  background: var(--accent-wash);
+  box-shadow: inset 3px 0 var(--accent);
 }
 
 .lt-time {

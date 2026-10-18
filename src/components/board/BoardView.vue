@@ -8,17 +8,20 @@ import RosterView from './RosterView.vue'
 import StatusBar from './StatusBar.vue'
 import UnknownList from './UnknownList.vue'
 import VerdictPanel from './VerdictPanel.vue'
+import WishCards from './WishCards.vue'
 import WishTimeline from './WishTimeline.vue'
 import type { PoolCategory } from '@/domain/pools'
+import { useAppStore } from '@/stores/app'
 import { useBoardStore } from '@/stores/board'
 
 /**
  * 主统计画面(V5「璇玑」主版面,DESIGN §3 自上而下):
- * 池页签栏 → 保底仪(通栏,页签正下方)→ 两栏(左:祈愿时间线/名册切换;
+ * 池页签栏 → 保底仪(通栏,页签正下方)→ 两栏(左:时间线/卡片/名册切换;
  * 右:欧非总账 = 评语区 + 高光时刻 2×2)→ 状态栏;流水抽屉底部滑出。
  * 全部内容由 board store 的 domain 视图模型驱动;窄窗经容器查询(≤1150px)单列降级。
  */
 const board = useBoardStore()
+const app = useAppStore()
 
 /** 时间线头部的超欧/超非计数(原 WishTimeline 头部行,并入工具行右缘) */
 const degreeCounts = computed(() => {
@@ -63,7 +66,7 @@ function onSelectScope(scope: PoolCategory): void {
       <div class="board-left">
         <div class="left-toolbar">
           <h2 class="left-title">
-            {{ board.listView === 'timeline' ? '祈愿时间线' : '五星名册' }}
+            {{ board.listView === 'roster' ? '五星名册' : board.listView === 'cards' ? '祈愿记录' : '祈愿时间线' }}
           </h2>
           <div
             class="view-switch"
@@ -73,20 +76,30 @@ function onSelectScope(scope: PoolCategory): void {
             <button
               type="button"
               :class="{ on: board.listView === 'timeline' }"
+              :aria-pressed="board.listView === 'timeline'"
               @click="board.setListView('timeline')"
             >
               时间线
             </button>
             <button
               type="button"
+              :class="{ on: board.listView === 'cards' }"
+              :aria-pressed="board.listView === 'cards'"
+              @click="board.setListView('cards')"
+            >
+              卡片
+            </button>
+            <button
+              type="button"
               :class="{ on: board.listView === 'roster' }"
+              :aria-pressed="board.listView === 'roster'"
               @click="board.setListView('roster')"
             >
               名册
             </button>
           </div>
           <div
-            v-if="board.listView === 'timeline' && board.scope !== 'unknown'"
+            v-if="board.listView !== 'roster' && board.scope !== 'unknown'"
             class="th-badges"
           >
             <i class="count-badge deg-super-lucky">超欧 {{ degreeCounts.superLucky }}</i>
@@ -100,6 +113,14 @@ function onSelectScope(scope: PoolCategory): void {
           :meter-hard="board.meterScale.hard"
           :meter-bounds="board.meterScale.bounds"
           @open-ledger="board.toggleLedger(true)"
+        />
+        <WishCards
+          v-else-if="board.listView === 'cards' && board.scope !== 'unknown'"
+          :key="`${app.currentUid}-${board.scope}`"
+          :rows="board.timelineRows"
+          :scope="board.scope"
+          :meter-hard="board.meterScale.hard"
+          @open-record="board.openRecord"
         />
         <RosterView
           v-else-if="board.listView === 'roster' && board.scope !== 'unknown'"
@@ -169,7 +190,8 @@ function onSelectScope(scope: PoolCategory): void {
   flex: none;
   display: flex;
   align-items: center;
-  gap: 16px;
+  flex-wrap: wrap;
+  gap: 12px 16px;
   padding: 12px 26px 0;
 }
 
