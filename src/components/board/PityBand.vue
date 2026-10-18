@@ -29,12 +29,6 @@ function gapTitle(remaining: number): string | undefined {
   return remaining < 0 ? '数据存在缺口' : undefined
 }
 
-/** 301/400 合并结算注记(仅 eventChar 且档案实有多 code 时展示) */
-const mergeNote = computed(() => {
-  const codes = props.stats.codes
-  return codes.length > 1 ? `${codes.join(' + ')} 合并结算` : null
-})
-
 /** 大小保底状态章(spec D5:仅 eventChar 有 guarantee;其余作用域不显示状态章) */
 const badge = computed<{ text: string; cls: string } | null>(() => {
   if (props.stats.guarantee === 'guaranteed') {
@@ -70,9 +64,13 @@ function pct(value: number, hard: number): string {
       <span class="pity-pool">{{ label }} · 保底状态</span>
       <span class="pity-tag">PITY INSTRUMENT</span>
       <span
-        v-if="mergeNote !== null"
-        class="pity-meta"
-      >{{ mergeNote }}</span>
+        v-if="badge !== null && !isEmpty"
+        class="pity-badge"
+        :class="badge.cls"
+      ><i
+        class="d"
+        aria-hidden="true"
+      />{{ badge.text }}</span>
     </div>
     <p
       v-if="isEmpty"
@@ -87,14 +85,6 @@ function pct(value: number, hard: number): string {
         </div>
         <span class="pity-unit">抽</span>
         <div class="pity-side">
-          <span
-            v-if="badge !== null"
-            class="pity-badge"
-            :class="badge.cls"
-          ><i
-            class="d"
-            aria-hidden="true"
-          />{{ badge.text }}</span>
           <div class="pity-cap">当前垫抽数 · 自上次五星起累计</div>
         </div>
         <i
@@ -196,7 +186,7 @@ function pct(value: number, hard: number): string {
 
 .pity-head {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 14px;
 }
 
@@ -221,14 +211,6 @@ function pct(value: number, hard: number): string {
   font-size: 11px;
   letter-spacing: 0.26em;
   color: var(--dim);
-}
-
-.pity-meta {
-  margin-left: auto;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--dim);
-  letter-spacing: 0.06em;
 }
 
 .pity-main {
@@ -256,6 +238,8 @@ function pct(value: number, hard: number): string {
 }
 
 .pity-badge {
+  margin-left: auto;
+  align-self: center;
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -286,7 +270,7 @@ function pct(value: number, hard: number): string {
 }
 
 .pity-cap {
-  margin-top: 8px;
+  padding-bottom: 6px;
   font-size: 11.5px;
   color: var(--dim);
   letter-spacing: 0.08em;

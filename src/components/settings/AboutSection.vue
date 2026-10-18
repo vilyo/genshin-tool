@@ -9,7 +9,7 @@ const appVersion = __APP_VERSION__
       原神工具箱 · 版本 <span class="mono">{{ appVersion }}</span>
     </p>
     <p class="privacy">
-      全本地统计 · 除官方祈愿接口外零出网 · 无遥测无账号。祈愿记录仅保存在这台电脑上。
+      全本地统计 · 无遥测无账号。祈愿记录仅保存在这台电脑上。
     </p>
     <p class="credit">
       © miHoYo / HoYoverse. 本工具与米哈游无隶属关系。游戏内素材版权归米哈游所有(ADR-0005:构建期内置,运行时不取图)。

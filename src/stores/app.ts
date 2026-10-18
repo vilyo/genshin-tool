@@ -300,17 +300,28 @@ export const useAppStore = defineStore('app', () => {
   // 档案状态
   // ---------------------------------------------------------------------------
 
-  /** 应用启动:listArchives → 恢复首档案(重启后数据完整可读)→ loadRecords */
+  /**
+   * 应用启动:listArchives → 按启动选档规则恢复档案(重启后数据完整可读)→ loadRecords。
+   * 选档规则:'0' 哨兵是未关联 Excel 记录的暂存档(spec 03 §7),创建早、迁并后常为空,
+   * 按列表首个选中会让启动总落在空哨兵上——有真实档案时跳过哨兵;多个真实档案取
+   * 最近同步者(与 D16 自动同步认领同规则,不等同于上次手动选中的档案);仅剩哨兵时回退
+   * 选中(纯 Excel 迁入、从未链接同步的用户,记录就在 '0' 里)。
+   */
   async function init(): Promise<void> {
     if (loading.value || currentUid.value !== null) return
     loading.value = true
     try {
       const list = await deps.storage.listArchives()
       archives.value = list
-      const first = list[0]
-      if (first !== undefined) {
-        currentUid.value = first.uid
-        records.value = await deps.storage.loadRecords(first.uid)
+      const real = list.filter((archive) => archive.uid !== UNLINKED_UID)
+      const pool = real.length > 0 ? real : list
+      const picked =
+        pool
+          .filter((archive) => archive.lastSyncedAt !== null)
+          .sort((a, b) => b.lastSyncedAt!.localeCompare(a.lastSyncedAt!))[0] ?? pool[0]
+      if (picked !== undefined) {
+        currentUid.value = picked.uid
+        records.value = await deps.storage.loadRecords(picked.uid)
       }
     } catch (error) {
       message.value = { kind: 'error', text: `读取本地档案失败:${errorText(error)}` }

@@ -93,11 +93,11 @@ describe('BoardView · 页签/保底仪/时间线/评语/高光/状态栏', () =
     expect(counts[1]!.attributes('title')).toBeUndefined()
   })
 
-  it('保底仪:大数字垫抽 30 + 大保底就绪章 + 301+400 合并结算 + 次级读数组', () => {
+  it('保底仪:大数字垫抽 30 + 大保底就绪章 + 次级读数组', () => {
     const { wrapper } = mountBoard()
     expect(wrapper.find('.pity-val').text()).toBe('30')
     expect(wrapper.text()).toContain('大保底就绪 · 下一金必中')
-    expect(wrapper.find('.pity-meta').text()).toBe('301 + 400 合并结算')
+    expect(wrapper.find('.pity-meta').exists()).toBe(false)
     const reads = wrapper.findAll('.read').map((read) => read.text())
     expect(reads[0]).toContain('距软保底')
     expect(reads[0]).toContain('44')
@@ -181,7 +181,7 @@ describe('BoardView · 页签/保底仪/时间线/评语/高光/状态栏', () =
 
   it('状态栏:全本地徽章 + 记录数(含 novice)/覆盖起点/最近同步', () => {
     const { wrapper } = mountBoard()
-    expect(wrapper.find('.local-badge').text()).toBe('全本地统计 · 除官方祈愿接口外零出网')
+    expect(wrapper.find('.local-badge').text()).toBe('全本地统计')
     expect(wrapper.find('.status-bar').text()).toContain('345 条记录')
     expect(wrapper.find('.status-bar').text()).toContain('覆盖 2026-01')
     expect(wrapper.find('.status-bar').text()).toContain('最近同步 2026-10-02 21:30')
@@ -325,6 +325,12 @@ describe('BoardView · 头像图标接入(T19,ADR-0005 avatarFor 消费方)', ()
 })
 
 describe('BoardView · T17 返工(rosterStale 提示行 / 保底仪空态与缺口提示)', () => {
+  it('角色活动空历史只显示空态,不显示小保底状态章', () => {
+    const { wrapper } = mountWith([])
+    expect(wrapper.find('.pity-empty').exists()).toBe(true)
+    expect(wrapper.find('.pity-badge').exists()).toBe(false)
+  })
+
   /** 分钟步进时间串(自 2026-05-01 10:01 起,升序) */
   function fillerTime(index: number): string {
     const m = 601 + index

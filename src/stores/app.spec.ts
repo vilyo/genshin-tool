@@ -58,6 +58,18 @@ function injectHappyPath(cacheText: string = RAW_URL, storage: FakeStorage = mak
 }
 
 describe('档案状态(init/切换)', () => {
+  it.each([null, '2026-10-02T00:00:00Z'])('真实档案同步时间同为 %s 时保持列表顺序', async (syncedAt) => {
+    const storage = makeFakeStorage({ '0': [], '111': [storedRecord()], '777': [storedRecord()] })
+    if (syncedAt !== null) {
+      await storage.storage.setLastSynced('111', syncedAt)
+      await storage.storage.setLastSynced('777', syncedAt)
+    }
+    injectHappyPath(RAW_URL, storage)
+    const store = useAppStore()
+    await store.init()
+    expect(store.currentUid).toBe('111')
+  })
+
   it('无档案:init 后 currentUid 为 null、记录为空', async () => {
     injectHappyPath()
     const store = useAppStore()
@@ -77,6 +89,40 @@ describe('档案状态(init/切换)', () => {
 
     expect(store.currentUid).toBe('777')
     expect(store.records).toHaveLength(1)
+  })
+
+  it('空 \'0\' 哨兵与真实档案并存:init 跳过哨兵选中真实档案', async () => {
+    const storage = makeFakeStorage({ '0': [], '777': [storedRecord()] })
+    injectHappyPath(RAW_URL, storage)
+    const store = useAppStore()
+
+    await store.init()
+
+    expect(store.currentUid).toBe('777')
+    expect(store.records).toHaveLength(1)
+  })
+
+  it('仅 \'0\' 哨兵档案:init 回退选中哨兵(纯 Excel 迁入用户的记录在 \'0\')', async () => {
+    const storage = makeFakeStorage({ '0': [storedRecord()] })
+    injectHappyPath(RAW_URL, storage)
+    const store = useAppStore()
+
+    await store.init()
+
+    expect(store.currentUid).toBe('0')
+    expect(store.records).toHaveLength(1)
+  })
+
+  it('多个真实档案:init 取最近同步者(与 D16 认领同规则)', async () => {
+    const storage = makeFakeStorage({ '111': [storedRecord()], '777': [storedRecord()] })
+    await storage.storage.setLastSynced('111', '2026-10-01T00:00:00Z')
+    await storage.storage.setLastSynced('777', '2026-10-02T00:00:00Z')
+    injectHappyPath(RAW_URL, storage)
+    const store = useAppStore()
+
+    await store.init()
+
+    expect(store.currentUid).toBe('777')
   })
 })
 

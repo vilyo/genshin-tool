@@ -28,7 +28,7 @@ const version = __APP_VERSION__
       class="dot"
       aria-hidden="true"
     />
-    <span class="local-badge">全本地统计 · 除官方祈愿接口外零出网</span>
+    <span class="local-badge">全本地统计</span>
     <span class="meta">
       {{ status.recordCount }} 条记录 · 覆盖 {{ status.since ?? '—' }}
     </span>
