@@ -11,7 +11,7 @@ import { percentText } from './boardDisplay'
 
 /**
  * 评语区 VerdictPanel(右栏 · 欧非总账上部,2026-10-17 一屏化精简):评级星盘
- * (conic-gradient 刻度环 + Italiana 评级字母,jsdom 无 canvas 故纯 CSS)+ 评级/评语行
+ * (conic-gradient 刻度环 + 评级字母,jsdom 无 canvas 故纯 CSS)+ 评级/评语行
  * + 口径行(期望参考线 62.5/53.25 旁注口径;明光说明降级为行 title 悬停)+
  * 歪率修正徽章 + 名单过期提示行(池级旗标收窄为常驻池名单外五星,T17 返工)+ 指标瓦片。
  * 档位印签/彩蛋徽章/大保底徽章已删——档位分布由时间线头部徽章与量距条档色编码,
@@ -104,7 +104,7 @@ const tiles = computed(() => [
     <!-- 评级簇(垂直弹性区):窗口变高时星盘随之放大(104→176 上限)并整体居中,
          多余高度被此区吸收,指标瓦片与高光锚在栏底,不出现底部大片留白 -->
     <div class="vp-center">
-      <!-- 评级星盘:外环 + conic-gradient 刻度带 + 北斗星位 + Italiana 评级字母 -->
+      <!-- 评级星盘:外环 + conic-gradient 刻度带 + 北斗星位 + 评级字母 -->
       <div
         class="dial"
         role="img"

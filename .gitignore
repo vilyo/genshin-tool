@@ -33,6 +33,9 @@ genshintool-backup-*.json
 # 测试夹具样本日志为合成数据、被 Rust 编译期 include_str!/include_bytes! 引用，必须入库
 !src-tauri/src/probe/fixtures/*.log
 
+# 字体裁剪源(约 25MB 完整字体,仅本地供 scripts/make-font.py 裁剪;产物 LXGWWenKaiNum.ttf 入库)
+src/assets/fonts/LXGWWenKai-Regular.ttf
+
 # 开发文档（仅本地保留，不入公开仓库；例外：docs/prototype/ 为 M2 定稿设计产物，入库）
 /docs/*
 !/docs/prototype/

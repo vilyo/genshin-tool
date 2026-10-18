@@ -7,7 +7,7 @@
  */
 :root {
   /* 字体(board.html --num/--tech/--mono/--cjk) */
-  --font-num: 'Italiana', 'Palatino', 'Georgia', serif;
+  --font-num: 'LXGW WenKai', 'Palatino', 'Georgia', serif;
   --font-tech: 'Jura', 'PingFang SC', 'Microsoft YaHei', sans-serif;
   --font-mono: 'Geist Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
   --font-cjk: 'PingFang SC', 'Microsoft YaHei', 'Segoe UI', system-ui, sans-serif;
