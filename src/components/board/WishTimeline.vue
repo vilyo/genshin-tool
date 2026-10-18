@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { poolLabel, type PoolCategory } from '@/domain/pools'
-import { avatarFor, DEGREE_META } from './boardDisplay'
+import { avatarFor, DEGREE_META, wishMeterColor } from './boardDisplay'
 import type { TimelineRow } from '@/stores/board'
 
 /** 时间线:姓名区叠印(仅超欧/超非),量距条 + 抽数 + 本次保底/结果。 */
@@ -113,6 +113,7 @@ function meterLabel(row: TimelineRow): string {
         </div>
         <div
           class="meter"
+          :style="{ '--wish-meter-color': wishMeterColor(row.five.pulls, meterHard) }"
           role="img"
           :aria-label="meterLabel(row)"
         >
@@ -365,7 +366,7 @@ function meterLabel(row: TimelineRow): string {
   letter-spacing: 0.04em;
 }
 
-/* —— 量距条:条长 = 垫抽数,条色 = 欧非档,背景轨四段分段与界线刻度 —— */
+/* —— 量距条:条长 = 出货抽数,条色连续渐变,背景保留档位界线刻度 —— */
 .meter {
   position: relative;
   height: 30px;
@@ -427,24 +428,9 @@ function meterLabel(row: TimelineRow): string {
   border: 2px solid var(--tip-stroke);
 }
 
-.meter-fill.deg-super-lucky,
-.meter-tip.deg-super-lucky {
-  background: var(--zone-super-lucky);
-}
-
-.meter-fill.deg-lucky,
-.meter-tip.deg-lucky {
-  background: var(--zone-lucky);
-}
-
-.meter-fill.deg-normal,
-.meter-tip.deg-normal {
-  background: var(--zone-normal);
-}
-
-.meter-fill.deg-unlucky,
-.meter-tip.deg-unlucky {
-  background: var(--zone-unlucky);
+.meter-fill,
+.meter-tip {
+  background: var(--wish-meter-color);
 }
 
 /* —— 结果区:数字个位 / 单位 / 保底条件与结果 —— */

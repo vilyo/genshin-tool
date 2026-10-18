@@ -11,12 +11,34 @@ import type { RosterView } from '@/domain/roster'
 import { degreeOf, type Degree } from '@/domain/verdict'
 import iconManifest from '@/assets/icons/manifest.json'
 
-/** 程度档的显示词与 CSS 档色类(量距条/档位词/印签共用) */
+/** 程度档的显示词与 CSS 档色类(档位词/印签共用) */
 export const DEGREE_META: Record<Degree, { label: string; cls: string }> = {
   superLucky: { label: '超欧', cls: 'deg-super-lucky' },
   lucky: { label: '欧', cls: 'deg-lucky' },
   normal: { label: '正常', cls: 'deg-normal' },
   unlucky: { label: '超非', cls: 'deg-unlucky' },
+}
+
+/** 记录量距条连续色谱。武器池按 1–80 抽映射到同一色谱,超范围取端点色。
+ * 90 抽池锚点:1 绿、34 黄绿、61 金、70 明显偏红、80 近正红、90 正红。
+ * 使用主题 token + sRGB 混色,与确认的示意一致,切换主题时由 CSS 自动更新。
+ */
+export function wishMeterColor(pulls: number, hard: number): string {
+  const value = 1 + ((Math.max(1, Math.min(hard, pulls)) - 1) / (hard - 1)) * 89
+  const stops = [
+    [1, 'var(--wish-meter-green)'],
+    [34, 'var(--wish-meter-lime)'],
+    [61, 'var(--wish-meter-gold)'],
+    [70, 'color-mix(in srgb, var(--wish-meter-red) 72%, var(--wish-meter-gold))'],
+    [80, 'color-mix(in srgb, var(--wish-meter-red) 94%, var(--wish-meter-gold))'],
+    [90, 'var(--wish-meter-red)'],
+  ] as const
+  const index = stops.findIndex(([at]) => value <= at)
+  if (index <= 0) return stops[0][1]
+  const [from, fromColor] = stops[index - 1]!
+  const [to, toColor] = stops[index]!
+  const weight = ((value - from) / (to - from)) * 100
+  return `color-mix(in srgb, ${toColor} ${weight}%, ${fromColor})`
 }
 
 /** 头像解析结果:icon = 内置图标(ADR-0005);placeholder = 首字占位章(兜底) */
