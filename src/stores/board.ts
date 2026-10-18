@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
+import { historicalPities, type HistoricalPity } from '@/domain/historicalPity'
 import {
   buildHighlights,
   buildStatusBar,
@@ -29,6 +30,7 @@ export interface TimelineRow {
   five: PoolStats['fives'][number]
   degree: ReturnType<typeof degreeOf>
   tag: string | null
+  pity: HistoricalPity
 }
 
 /**
@@ -87,15 +89,21 @@ export const useBoardStore = defineStore('board', () => {
    */
   const timelineRows = computed<TimelineRow[]>(() => {
     const tagByKey = buildTagIndex(scope.value, roster.value)
-    return [...stats.value.fives].reverse().map((five) => {
+    const pities = historicalPities(scope.value, stats.value.fives)
+    return stats.value.fives.map((five, index) => {
       const key = timelineKey(
         five.record.name,
         five.record.time.slice(0, 10),
         poolLabel(five.record.gachaType),
         five.pulls,
       )
-      return { five, degree: degreeOf(five.pulls, scope.value), tag: tagByKey.get(key) ?? null }
-    })
+      return {
+        five,
+        degree: degreeOf(five.pulls, scope.value),
+        tag: tagByKey.get(key) ?? null,
+        pity: pities[index]!,
+      }
+    }).reverse()
   })
 
   /**

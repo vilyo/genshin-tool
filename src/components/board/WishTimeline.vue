@@ -4,14 +4,7 @@ import { poolLabel, type PoolCategory } from '@/domain/pools'
 import { avatarFor, DEGREE_META } from './boardDisplay'
 import type { TimelineRow } from '@/stores/board'
 
-/**
- * 祈愿时间线(V5.1 量距条语法,左栏主列表):一行一次五星出货,新的在前。
- * 行 = 头像章(ADR-0005 内置图标整像圆形呈现、环框镶嵌,未知名回退首字菱形占位章)
- * + 物品名(C/R 标签随名)+ 日期与池名 + 量距条(条长 = pulls/硬保底
- * 归一化、条色 = degreeOf 四档、背景轨四段分段与界线刻度、菱形游标)+ 右侧结果区
- * (档位词/抽数/抽/歪章)——结果区按 grid 固定列模板对齐(档位词右缘、数字个位、
- * 单位、结果章四列垂直轨,DESIGN §3)。抽数与档色只来自 stats.fives × degreeOf。
- */
+/** 时间线:姓名区叠印(仅超欧/超非),量距条 + 抽数 + 本次保底/结果。 */
 const props = defineProps<{
   rows: TimelineRow[]
   scope: PoolCategory
@@ -27,15 +20,6 @@ defineEmits<{ 'open-ledger': [] }>()
 const decoratedRows = computed(() =>
   props.rows.map((row) => ({ row, avatar: avatarFor(row.five.record.name) })),
 )
-
-const countByDegree = computed(() => {
-  const counts = { superLucky: 0, unlucky: 0 }
-  for (const row of props.rows) {
-    if (row.degree === 'superLucky') counts.superLucky += 1
-    if (row.degree === 'unlucky') counts.unlucky += 1
-  }
-  return counts
-})
 
 /** 超欧/超非 = 稀有行(独立洗色 token,双主题等权) */
 function rowClass(row: TimelineRow): string[] {
@@ -73,14 +57,6 @@ function meterLabel(row: TimelineRow): string {
     class="timeline"
     aria-label="祈愿时间线"
   >
-    <header class="timeline-head">
-      <span class="th-sub">按抽卡顺序 · 新的在前</span>
-      <span class="th-note">量距条 · 条长 = 垫抽数 · 条色 = 欧非档</span>
-      <span class="th-badges">
-        <i class="count-badge deg-super-lucky">超欧 {{ countByDegree.superLucky }}</i>
-        <i class="count-badge deg-unlucky">超非 {{ countByDegree.unlucky }}</i>
-      </span>
-    </header>
     <p
       v-if="rows.length === 0"
       class="timeline-empty"
@@ -108,14 +84,31 @@ function meterLabel(row: TimelineRow): string {
           <span v-else>{{ avatar.char }}</span>
         </span>
         <div class="wish-name">
-          <div class="nm1">
-            {{ row.five.record.name }}<span
-              v-if="row.tag !== null"
-              class="nm-tag"
-            >· {{ row.tag }}</span>
+          <div class="wish-heading">
+            <div class="nm1">
+              {{ row.five.record.name }}<span
+                v-if="row.tag !== null"
+                class="nm-tag"
+              >· {{ row.tag }}</span>
+            </div>
+            <svg
+              v-if="row.degree === 'superLucky' || row.degree === 'unlucky'"
+              class="fortune-seal"
+              :class="DEGREE_META[row.degree].cls"
+              viewBox="0 0 72 72"
+              role="img"
+              :aria-label="DEGREE_META[row.degree].label"
+            >
+              <circle class="seal-outer" cx="36" cy="36" r="29" />
+              <circle class="seal-inner" cx="36" cy="36" r="25" />
+              <text x="36" y="47" text-anchor="middle">{{ row.degree === 'superLucky' ? '欧' : '非' }}</text>
+            </svg>
           </div>
-          <div class="nm2">
-            {{ row.five.record.time.slice(0, 16) }} · 池 {{ poolLabel(row.five.record.gachaType) }}
+          <div
+            class="nm2"
+            :title="`${row.five.record.time} · ${poolLabel(row.five.record.gachaType)}`"
+          >
+            {{ row.five.record.time.slice(0, 16) }} · 池 {{ row.five.record.gachaType }}
           </div>
         </div>
         <div
@@ -153,17 +146,17 @@ function meterLabel(row: TimelineRow): string {
             :style="{ left: pct(row.five.pulls) }"
           />
         </div>
-        <span
-          class="wish-degree"
-          :class="DEGREE_META[row.degree].cls"
-        >{{ DEGREE_META[row.degree].label }}</span>
         <span class="wish-q">{{ row.five.pulls }}</span>
         <span class="wish-qu">抽</span>
         <span
           v-if="row.five.off !== null"
           class="wish-bd"
-          :class="row.five.off ? 'lost' : 'ok'"
-        >{{ row.five.off ? '歪' : '不歪' }}</span>
+          :class="[row.five.off ? 'lost' : 'ok', { guaranteed: row.pity === 'guaranteed' }]"
+          :title="row.pity === 'unknown' ? '历史不足或序列异常,无法确认本次保底类型' : '根据已保存的角色活动祈愿历史判断本次保底类型'"
+        >
+          <span class="wish-pity">{{ row.pity === 'guaranteed' ? '大保底' : row.pity === 'small' ? '小保底' : '待确认' }}</span>
+          <span class="wish-result">{{ row.five.off ? '歪' : row.pity === 'guaranteed' ? '必中' : '不歪' }}</span>
+        </span>
         <span
           v-else
           class="wish-bd blank"
@@ -188,40 +181,8 @@ function meterLabel(row: TimelineRow): string {
   display: flex;
   flex-direction: column;
   min-height: 0;
-}
-
-.timeline-head {
-  flex: none;
-  display: flex;
-  align-items: baseline;
-  gap: 14px;
-  padding: 14px 26px 10px;
-}
-
-.th-sub {
-  font-size: 12px;
-  font-family: var(--font-mono);
-  color: var(--dim);
-  letter-spacing: 0.06em;
-}
-
-.th-note {
-  margin-left: auto;
-  font-size: 11.5px;
-  font-family: var(--font-mono);
-  color: var(--dim);
-  letter-spacing: 0.06em;
-}
-
-.th-badges {
-  display: inline-flex;
-  gap: 8px;
-}
-
-.count-badge {
-  font-style: normal;
-  font-size: 11.5px;
-  letter-spacing: 0.06em;
+  /* 原头部行的高距并入此处(与 RosterView 头部 14px 同距),标题行不再双行占位 */
+  padding-top: 14px;
 }
 
 .timeline-empty {
@@ -238,13 +199,15 @@ function meterLabel(row: TimelineRow): string {
   padding: 0;
 }
 
-/* 对齐轨:章 | 名 | 量距条 | 档位词右缘 | 数字个位 | 单位 | 结果章(DESIGN §3) */
+/* 姓名/日期/圆印组成紧凑的固定宽度信息区;量距条独占剩余宽度。
+ * 避免宽窗把姓名与圆印拉开,所有行(含无印章行)保持同一量距条起点。
+ * 216px 容纳完整日期+池 code;印章随上方文字末尾定位。 */
 .wish-row {
   display: grid;
-  grid-template-columns: 54px minmax(140px, 1.1fr) minmax(170px, 1.8fr) 58px 52px 20px 58px;
+  grid-template-columns: 54px 216px minmax(140px, 1fr) 42px 16px 76px;
   align-items: center;
-  column-gap: 14px;
-  min-height: 64px;
+  column-gap: 12px;
+  min-height: 70px;
   padding: 7px 10px 7px 16px;
   border-bottom: 1px solid var(--line-soft);
 }
@@ -322,7 +285,55 @@ function meterLabel(row: TimelineRow): string {
 }
 
 .wish-name {
+  position: relative;
   min-width: 0;
+}
+
+/* 锚定实际姓名/命座宽度,短名也能贴近落印;圈边轻叠姓名末尾及下方日期,章字保持在两行之间。 */
+.wish-heading {
+  position: relative;
+  width: fit-content;
+  max-width: calc(100% - 44px);
+}
+
+.fortune-seal {
+  position: absolute;
+  width: 52px;
+  height: 52px;
+  left: calc(100% - 13px);
+  top: -9px;
+  transform: rotate(12deg);
+  pointer-events: none;
+  color: var(--stamp-unlucky);
+  mask-image: url('../../assets/seal-grain.svg');
+  mask-size: 100% 100%;
+}
+
+.fortune-seal.deg-super-lucky {
+  color: var(--stamp-super-lucky);
+  transform: rotate(-10deg);
+}
+
+.fortune-seal circle {
+  fill: none;
+  stroke: currentColor;
+}
+
+.seal-outer {
+  stroke-width: 2.2;
+  stroke-dasharray: 51 1.5 32 2 70 1 25;
+}
+
+.seal-inner {
+  stroke-width: 0.9;
+  stroke-dasharray: 72 0.8 40 1.5 44;
+}
+
+.fortune-seal text {
+  fill: currentColor;
+  font-family: 'Songti SC', 'SimSun', 'Noto Serif CJK SC', serif;
+  font-size: 34px;
+  font-weight: 700;
 }
 
 .nm1 {
@@ -344,7 +355,10 @@ function meterLabel(row: TimelineRow): string {
 }
 
 .nm2 {
-  margin-top: 5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 9px;
   font-family: var(--font-mono);
   font-size: 11px;
   color: var(--dim);
@@ -433,30 +447,7 @@ function meterLabel(row: TimelineRow): string {
   background: var(--zone-unlucky);
 }
 
-/* —— 结果区:档位词/数字/单位/结果章四列垂直轨 —— */
-.wish-degree {
-  font-size: 14px;
-  font-weight: 600;
-  text-align: right;
-  letter-spacing: 0.06em;
-}
-
-.wish-degree.deg-super-lucky {
-  color: var(--zone-super-lucky);
-}
-
-.wish-degree.deg-lucky {
-  color: var(--zone-lucky);
-}
-
-.wish-degree.deg-normal {
-  color: var(--zone-normal);
-}
-
-.wish-degree.deg-unlucky {
-  color: var(--zone-unlucky);
-}
-
+/* —— 结果区:数字个位 / 单位 / 保底条件与结果 —— */
 .wish-q {
   font-family: var(--font-num);
   font-size: 23px;
@@ -471,27 +462,42 @@ function meterLabel(row: TimelineRow): string {
 
 .wish-bd {
   justify-self: end;
-  width: 52px;
-  height: 28px;
+  width: 76px;
+  min-height: 49px;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
-  font-weight: 600;
-  border-radius: 7px;
-  letter-spacing: 0.14em;
+  gap: 4px;
+  border: 1px solid var(--jade-bd);
+  border-radius: 5px;
+  background: var(--jade-bg);
+  color: var(--jade);
 }
 
-.wish-bd.ok {
-  color: var(--jade);
-  border: 1px solid var(--jade-bd);
-  background: var(--jade-bg);
+.wish-pity {
+  font-size: 11px;
+  color: var(--mut);
+  line-height: 1.2;
+}
+
+.wish-result {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.1em;
 }
 
 .wish-bd.lost {
-  color: var(--btn-ink);
-  background: var(--cinnabar);
-  border: 1px solid var(--cinnabar);
+  color: var(--stamp-unlucky);
+  border-color: var(--rare-edge-unlucky);
+  background: var(--rare-bg-unlucky);
+}
+
+.wish-bd.guaranteed {
+  color: var(--accent);
+  border-color: var(--raise-border);
+  background: var(--accent-wash);
 }
 
 .wish-bd.blank {

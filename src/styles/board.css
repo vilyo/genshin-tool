@@ -5,6 +5,8 @@
  * 与 verdict.degreeOf 四档一一对应:超欧 spring / 欧 accent / 正常 冷灰 / 超非 cinnabar。
  */
 :root {
+  --stamp-super-lucky: #8fd9a8;
+  --stamp-unlucky: #df8794;
   --zone-super-lucky: #8fd9a8;
   --zone-lucky: #82a8ea;
   --zone-normal: #8fa0b0;
@@ -27,6 +29,8 @@
 }
 
 html[data-theme='light'] {
+  --stamp-super-lucky: #216e4b;
+  --stamp-unlucky: #a4374d;
   --zone-super-lucky: #2f8f63;
   --zone-lucky: #2e509c;
   --zone-normal: #676d75;

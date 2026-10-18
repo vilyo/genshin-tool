@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted } from 'vue'
+import { computed, onBeforeUnmount, onMounted } from 'vue'
 import HighlightsGrid from './HighlightsGrid.vue'
 import LedgerDrawer from './LedgerDrawer.vue'
 import PityBand from './PityBand.vue'
@@ -19,6 +19,16 @@ import { useBoardStore } from '@/stores/board'
  * 全部内容由 board store 的 domain 视图模型驱动;窄窗经容器查询(≤1150px)单列降级。
  */
 const board = useBoardStore()
+
+/** 时间线头部的超欧/超非计数(原 WishTimeline 头部行,并入工具行右缘) */
+const degreeCounts = computed(() => {
+  const counts = { superLucky: 0, unlucky: 0 }
+  for (const row of board.timelineRows) {
+    if (row.degree === 'superLucky') counts.superLucky += 1
+    if (row.degree === 'unlucky') counts.unlucky += 1
+  }
+  return counts
+})
 
 function onKey(event: KeyboardEvent): void {
   if (event.key === 'Escape') {
@@ -74,6 +84,13 @@ function onSelectScope(scope: PoolCategory): void {
             >
               名册
             </button>
+          </div>
+          <div
+            v-if="board.listView === 'timeline' && board.scope !== 'unknown'"
+            class="th-badges"
+          >
+            <i class="count-badge deg-super-lucky">超欧 {{ degreeCounts.superLucky }}</i>
+            <i class="count-badge deg-unlucky">超非 {{ degreeCounts.unlucky }}</i>
           </div>
         </div>
         <WishTimeline
@@ -188,6 +205,27 @@ function onSelectScope(scope: PoolCategory): void {
   color: var(--accent);
   background: var(--accent-wash);
   font-weight: 600;
+}
+
+/* 时间线的超欧/超非计数(与名册头部芯片同 token 洗色) */
+.th-badges {
+  margin-left: auto;
+  display: inline-flex;
+  gap: 8px;
+}
+
+.count-badge {
+  font-style: normal;
+  font-size: 11.5px;
+  letter-spacing: 0.06em;
+}
+
+.count-badge.deg-super-lucky {
+  color: var(--zone-super-lucky);
+}
+
+.count-badge.deg-unlucky {
+  color: var(--zone-unlucky);
 }
 
 .board-right {

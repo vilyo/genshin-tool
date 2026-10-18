@@ -80,7 +80,9 @@ describe('BoardView · 页签/保底仪/时间线/评语/高光/状态栏', () =
     const { wrapper, board } = mountWith(records)
     const first = wrapper.findAll('.wish-row')[1]!
     expect(first.find('.wish-q').text()).toBe('16')
-    expect(first.find('.wish-degree').text()).toBe('超欧')
+    expect(first.find('.wish-pity').text()).toBe('待确认')
+    expect(first.find('.wish-result').text()).toBe('不歪')
+    expect(first.find('.fortune-seal').attributes('aria-label')).toBe('超欧')
     expect(first.find('.meter').attributes('aria-label')).toContain('出货 16 抽')
     expect(first.classes()).toContain('rare-super-lucky')
     expect(wrapper.find('.wish-q').text()).toBe('2')
@@ -110,7 +112,7 @@ describe('BoardView · 页签/保底仪/时间线/评语/高光/状态栏', () =
     const { wrapper } = mountBoard()
     const rows = wrapper.findAll('.wish-row')
     expect(rows).toHaveLength(5)
-    const degrees = rows.map((row) => row.find('.wish-degree').classes())
+    const degrees = rows.map((row) => row.find('.meter-fill').classes())
     expect(degrees.map((classes) => classes.includes('deg-unlucky'))).toEqual([true, true, false, false, false])
     expect(degrees.map((classes) => classes.includes('deg-super-lucky'))).toEqual([false, false, true, false, true])
     expect(degrees.map((classes) => classes.includes('deg-lucky'))).toEqual([false, false, false, true, false])
@@ -122,9 +124,14 @@ describe('BoardView · 页签/保底仪/时间线/评语/高光/状态栏', () =
     // 首金(刻晴 1 抽)照常计数分档,无下界提示
     const first = rows[4]!
     expect(first.find('.wish-q').text()).toBe('1')
-    expect(first.find('.wish-degree').text()).toBe('超欧')
+    expect(first.find('.fortune-seal').attributes('aria-label')).toBe('超欧')
     expect(first.find('.wish-q').attributes('title')).toBeUndefined()
-    // 歪章:3 歪 2 不歪;档位词/数字列轨渲染
+    expect(wrapper.find('.wish-degree').exists()).toBe(false)
+    expect(wrapper.findAll('.fortune-seal')).toHaveLength(4)
+    expect(rows[3]!.find('.fortune-seal').exists()).toBe(false)
+    expect(rows.map((row) => row.find('.wish-pity').text())).toEqual(['待确认', '小保底', '小保底', '大保底', '小保底'])
+    expect(rows.map((row) => row.find('.wish-result').text())).toEqual(['歪', '歪', '不歪', '必中', '歪'])
+    // 原始歪/不歪结果仍保留,大保底增加独立视觉。
     expect(wrapper.findAll('.wish-bd.ok')).toHaveLength(2)
     expect(wrapper.findAll('.wish-bd.lost')).toHaveLength(3)
     expect(rows[2]!.find('.wish-q').text()).toBe('8')
@@ -238,6 +245,8 @@ describe('BoardView · 名册切换与流水抽屉', () => {
     await tabByText(wrapper, '新手祈愿').trigger('click')
     expect(wrapper.find('.pity-band').exists()).toBe(false)
     expect(wrapper.findAll('.wish-row')).toHaveLength(1)
+    expect(wrapper.find('.wish-pity').exists()).toBe(false)
+    expect(wrapper.find('.wish-result').exists()).toBe(false)
     await tabByText(wrapper, '未收录').trigger('click')
     expect(wrapper.find('.unknown-list').exists()).toBe(true)
     expect(wrapper.text()).toContain('未收录祈愿 1000')
